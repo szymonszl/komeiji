@@ -54,6 +54,7 @@ typedef struct {
     char buffer[KMJ_SOCK_BUFLEN];
 } wsock_t;
 
+int ssl_init(void);
 
 wsock_t* wsock_create(const char* url);
 void wsock_free(wsock_t*);

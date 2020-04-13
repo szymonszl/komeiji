@@ -4,7 +4,7 @@ struct {
     SSL_CTX* client;
 } _ssl_ctx;
 
-int _ssl_init(void) {
+int ssl_init(void) {
     static int is_ready = 0;
     if(is_ready)
         return 0;
@@ -19,12 +19,4 @@ int _ssl_init(void) {
     SSL_CTX_set_ecdh_auto(_ssl_ctx.client, 1);
     is_ready = 1;
     return 0;
-}
-
-#define KMJ_SOCK_PROTO_WS   0
-#define KMJ_SOCK_PROTO_WSS  1
-
-
-url_t* _ws_read_url(const char* url, url_t *out) {
-
 }
