@@ -11,7 +11,7 @@
 #define KMJ_MAP_GROW_THRESHOLD      1.25
 #define KMJ_MAP_BUCKET_START_SIZE   4
 #define KMJ_MAP_DEFAULT_GROW_BASE   2
-#define KMJ_MAP_DEFAULT_BUCKETS     4 //16
+#define KMJ_MAP_DEFAULT_BUCKETS     8
 
 typedef struct {
     char* key;

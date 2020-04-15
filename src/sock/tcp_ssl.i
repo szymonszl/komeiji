@@ -1,10 +1,10 @@
-#include "wsock.h"
+#include "tcp.h"
 
 struct {
     SSL_CTX* client;
 } _ssl_ctx;
 
-int ssl_init(void) {
+int _ssl_init(void) {
     static int is_ready = 0;
     if(is_ready)
         return 0;
