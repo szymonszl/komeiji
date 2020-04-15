@@ -32,7 +32,7 @@ uint32_t _hash_str(const char* str) {
     uint32_t out = 0;
     uint32_t scaler = 1;
 
-    for(size_t i = strlen(str) - 1; i >= 0; --i) {
+    for(int i = strlen(str) - 1; i >= 0; --i) {
         out += scaler * str[i];
         scaler *= 31;
     }
@@ -62,7 +62,7 @@ map_node_t* _bucket_resize(map_node_t* bucket) {
     }
 
     // realloc will behave the same as malloc when given a nullptr
-    realloc(bucket, new_size);
+    bucket = realloc(bucket, new_size * sizeof(map_node_t));
     for(int i = start_size; i < new_size; ++i) {
         bucket[i].key = bucket[i].value = NULL;
         bucket[i].end = 0;
@@ -168,10 +168,10 @@ void* map_set(map_t* map, const char* key, void* value) {
         // O(1) time for setting as the standard node count in any
         // given bucket should be close to constant
 
-        if(map->buckets[n][i].key == NULL)
+        if(map->buckets[n][i].key == NULL) {
             if(write_node == NULL)
                 write_node = &(map->buckets[n][i]);
-        else if(strcmp(key_cmp, map->buckets[n][i].key) == 0) {
+        } else if(strcmp(key_cmp, map->buckets[n][i].key) == 0) {
             write_node = &(map->buckets[n][i]);
             break;
         }
