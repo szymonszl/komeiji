@@ -9,8 +9,10 @@ buffer_t* buffer_create() {
 }
 
 void buffer_write(buffer_t* buffer, const char* data, int length) {
-    if(buffer->next != NULL)
+    if(buffer->next != NULL) {
         buffer_write(buffer->next, data, length);
+        return;
+    }
 
     int written = MIN(length, KMJ_BUFFER_NODE_SIZE - buffer->length);
     memcpy(buffer->data + buffer->length, data, written);
