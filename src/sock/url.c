@@ -40,7 +40,7 @@ int url_parse(const char* uri, url_t* out) {
     enum { ADDR, PORT, PATH, QUERY, FRAGMENT };
     int state = ADDR;
 
-    for(; ptr != '\0'; ++ptr) {
+    for(; *ptr != '\0'; ++ptr) {
 
     }
 
