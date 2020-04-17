@@ -18,7 +18,7 @@
 
 typedef struct {
     int proto;
-    char addr[256];
+    char host[256];
     uint16_t port;
     char path[2048];
     char* query;

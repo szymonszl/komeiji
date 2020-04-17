@@ -32,7 +32,7 @@ int url_parse(const char* uri, url_t* out) {
     if(out->proto == KMJ_URL_PROTO_UNKNOWN)
         return KMJ_URL_ERR_BAD_PROTO;
 
-    out->addr[0] = '\0';
+    out->host[0] = '\0';
     strcpy(out->path, "/");
     out->query = NULL;
     out->fragment = NULL;

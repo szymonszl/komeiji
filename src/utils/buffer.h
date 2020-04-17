@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define KMJ_BUFFER_NODE_SIZE 8
+#define KMJ_BUFFER_NODE_SIZE 256
 
 #define MAX(A,B) (A > B ? A : B)
 #define MIN(A,B) (A < B ? A : B)
