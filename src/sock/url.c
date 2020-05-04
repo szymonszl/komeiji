@@ -37,12 +37,93 @@ int url_parse(const char* uri, url_t* out) {
     out->query = NULL;
     out->fragment = NULL;
 
-    enum { ADDR, PORT, PATH, QUERY, FRAGMENT };
-    int state = ADDR;
+    enum { HOST, PORT, PATH, QUERY, FRAGMENT };
+    int state = HOST;
+    char* to = out->host;
+    char port[6] = {0, 0, 0, 0, 0, 1};
 
     for(; *ptr != '\0'; ++ptr) {
+        if(state == HOST) {
+            if(*ptr == ':') {
+                *to = '\0';
+                to = port;
+                state = PORT;
+            } else if(*ptr == '/' || *ptr == '?' || *ptr == '#') {
+                *to = '\0';
+                to = out->path + 1;
+                state = PATH;
 
+                if(*ptr == '?') {
+                    state = QUERY;
+                    out->query = to;
+                    *(to++) = *ptr;
+                } else if(*ptr == '#') {
+                    state = FRAGMENT;
+                    out->fragment = to;
+                    *(to++) = *ptr;
+                }
+            } else
+                *(to++) = *ptr;
+        } else if(state == PORT) {
+            if(!isdigit(*ptr) && *ptr != '/' && *ptr != '?' && *ptr != '#')
+                return KMJ_URL_ERR_BAD_PORT;
+            else if(*ptr == '/' || *ptr == '?' || *ptr == '#') {
+                *to = '\0';
+                to = out->path + 1;
+                state = PATH;
+
+                if(*ptr == '?') {
+                    state = QUERY;
+                    out->query = to;
+                    *(to++) = *ptr;
+                } else if(*ptr == '#') {
+                    state = FRAGMENT;
+                    out->fragment = to;
+                    *(to++) = *ptr;
+                }
+            } else {
+                if(*to == 1)
+                    return KMJ_URL_ERR_BAD_PORT;
+                *(to++) = *ptr;
+            }
+        } else {
+            if(*ptr == ':')
+                return KMJ_URL_ERR_BAD_PATH;
+
+            if(state == PATH) {
+                *(to++) = *ptr;
+
+                if(*ptr == '?') {
+                    state = QUERY;
+                    out->query = to - 1;
+                } else if(*ptr == '#') {
+                    state = FRAGMENT;
+                    out->fragment = to - 1;
+                }
+            } else {
+                if(*ptr == '/' || *ptr == '?')
+                    return KMJ_URL_ERR_BAD_PATH;
+
+                if(state == QUERY) {
+                    *(to++) = *ptr;
+                    if(*ptr == '#') {
+                        state = FRAGMENT;
+                        out->fragment = to - 1;
+                    }
+                } else if(state == FRAGMENT) {
+                    if(*ptr == '#')
+                        return KMJ_URL_ERR_BAD_PATH;
+
+                    *(to++) = *ptr;
+                }
+            }
+        }
     }
+
+    if(state == PATH || state == QUERY || state == FRAGMENT)
+        *to = '\0';
+    if(port[0] != '\0')
+        out->port = (uint16_t)atoi(port);
 
     return KMJ_URL_OK;
 }

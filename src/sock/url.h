@@ -27,7 +27,7 @@ typedef struct {
 
 #define KMJ_URL_OK               0
 #define KMJ_URL_ERR_BAD_PROTO   -1
-#define KMJ_URL_ERR_BAD_ADDR    -2
+#define KMJ_URL_ERR_BAD_HOST    -2
 #define KMJ_URL_ERR_BAD_PORT    -3
 #define KMJ_URL_ERR_BAD_PATH    -4
 

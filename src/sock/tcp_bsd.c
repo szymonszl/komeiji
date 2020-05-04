@@ -76,7 +76,7 @@ int tcp_send_raw(tcp_t* conn, const char* data, int length) {
 
     int total_sent = 0;
     while(total_sent < length) {
-        int sent = (conn->ssl != NULL)
+        int sent = (conn->ssl == NULL)
             ? (int)send(conn->sock, data + total_sent, length - total_sent, 0)
             : (int)SSL_write(conn->ssl, data + total_sent, length - total_sent);
 

@@ -114,3 +114,11 @@ char* base64_decode(const char* str) {
     free(code);
     return out;
 }
+
+char* random_bytes(char* bytes, int length) {
+    if(bytes == NULL)
+        bytes = malloc(length * sizeof(char));
+    for(int i = 0; i < length; ++i)
+        bytes[i] = rand() & 0xFF;
+    return bytes;
+}

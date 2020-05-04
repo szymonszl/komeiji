@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <ctype.h>
+#include <time.h>
 
 char* str_lower(char*);
 char* str_upper(char*);
@@ -12,5 +13,7 @@ char* str_upper(char*);
 char* base64_encode(const char*, int length);
 char* base64_encode_str(const char*);
 char* base64_decode(const char*);
+
+char* random_bytes(char*, int length);
 
 #endif
