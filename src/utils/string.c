@@ -122,3 +122,20 @@ char* random_bytes(char* bytes, int length) {
         bytes[i] = rand() & 0xFF;
     return bytes;
 }
+
+// network order aka big endian
+void num_write(char* str, uint64_t n, int bytes) {
+    for(int i = 0; i < bytes; ++i) {
+        str[bytes - i - 1] = n & 0xFF;
+        n >>= 8;
+    }
+}
+
+// network order aka big endian
+uint64_t num_read(const char* str, int bytes) {
+    int n = 0;
+    for(int i = 0; i < bytes; ++i)
+        n = (n << 8) | str[i];
+
+    return n;
+}

@@ -26,6 +26,7 @@ char* buffer_read(buffer_t*, int* length);
 char* buffer_read_str(buffer_t*);
 
 int buffer_length(buffer_t*);
+void buffer_mask(buffer_t*, char* mask, int length);
 
 void buffer_truncate(buffer_t*);
 void buffer_truncate_to(buffer_t*, int to);

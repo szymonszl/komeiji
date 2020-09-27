@@ -19,7 +19,6 @@ wsock_t* wsock_open(const char* url);
 
 int wsock_send(wsock_t*, buffer_t*);
 int wsock_recv(wsock_t*, buffer_t*);
-int wsock_recv_nb(wsock_t*, buffer_t*);
 
 void wsock_close(wsock_t*);
 

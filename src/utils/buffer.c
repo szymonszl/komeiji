@@ -59,6 +59,20 @@ int buffer_length(buffer_t* buffer) {
         ((buffer->next == NULL) ? 0 : buffer_length(buffer->next));
 }
 
+void buffer_mask(buffer_t* buffer, char* mask, int length) {
+    buffer_t* ptr = buffer;
+    int n = 0;
+
+    while(ptr != NULL) {
+        for(int i = 0; i < ptr->length; ++i) {
+            ptr->data[i] ^= mask[n];
+            n = (n + 1) % length;
+        }
+
+        ptr = buffer->next;
+    }
+}
+
 void buffer_truncate(buffer_t* buffer) {
     if(buffer->next != NULL)
         buffer_free(buffer->next);

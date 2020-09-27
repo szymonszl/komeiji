@@ -41,6 +41,7 @@
 #define KMJ_TCP_NONE      0
 #define KMJ_TCP_NO_BLOCK  1
 #define KMJ_TCP_ONE_CHUNK 2
+#define KMJ_TCP_WHOLE     4
 
 #define KMJ_TCP_NO_SSL 0
 #define KMJ_TCP_SSL    1
@@ -58,7 +59,9 @@ tcp_t* tcp_open(const char* host, uint16_t port, int secure);
 
 int tcp_send(tcp_t*, buffer_t*);
 int tcp_send_raw(tcp_t*, const char* data, int length);
+
 int tcp_recv(tcp_t*, buffer_t*, int flags);
+int tcp_recv_to(tcp_t*, buffer_t*, int length, int flags);
 int tcp_recv_raw(tcp_t*, char* data, int length, int flags);
 
 int tcp_is_open(tcp_t*);

@@ -93,16 +93,47 @@ int tcp_send_raw(tcp_t* conn, const char* data, int length) {
 int tcp_recv(tcp_t* conn, buffer_t* buffer, int flags) {
     if(!conn->sock_open)
         return -1;
+
     char chunk[KMJ_TCP_CHUNK];
 
     do {
-        int length = tcp_recv_raw(conn, chunk, KMJ_TCP_CHUNK, flags);
+        int read = tcp_recv_raw(conn, chunk, KMJ_TCP_CHUNK, flags);
 
-        if(length < 0)
-            return length;
-        else if(length > 0)
-            buffer_write(buffer, chunk, length);
+        if(read < 0)
+            return read;
+        else if(read > 0)
+            buffer_write(buffer, chunk, read);
     } while(!(flags & KMJ_TCP_ONE_CHUNK) && tcp_is_data_ready(conn));
+
+    return 0;
+}
+
+// if called with KMJ_TCP_NO_BLOCK, this relies on the buffer length
+// to keep track of what was received between calls. if you use this
+// with a buffer that doesn't start out empty you will not get the
+// entire message you're expecting. if this flag is not set this will
+// ignore any data in the buffer and block until the entire packet recvs
+int tcp_recv_to(tcp_t* conn, buffer_t* buffer, int length, int flags) {
+    if(!conn->sock_open)
+        return -1;
+    char chunk[KMJ_TCP_CHUNK];
+
+    if(flags & KMJ_TCP_NO_BLOCK)
+        length -= buffer_length(buffer);
+    if(length <= 0)
+        return 0;
+
+    do {
+        int read = tcp_recv_raw(conn, chunk,
+            MIN(KMJ_TCP_CHUNK, length), flags | KMJ_TCP_WHOLE);
+
+        if(read < 0)
+            return read;
+        else if(read > 0)
+            buffer_write(buffer, chunk, read);
+
+        length -= read;
+    } while(length > 0);
 
     return 0;
 }
@@ -111,19 +142,42 @@ int tcp_recv_raw(tcp_t* conn, char* data, int length, int flags) {
     if(!conn->sock_open)
         return -1;
 
+    // nonblocking request takes precedence over whole request
+    // whole request will break nonblocking order so clear it
+    if(flags & KMJ_TCP_NO_BLOCK)
+        flags &= ~KMJ_TCP_WHOLE;
+
     if((flags & KMJ_TCP_NO_BLOCK) && !tcp_is_data_ready(conn))
         return 0;
 
-    int read = (conn->ssl == NULL)
-        ? (int)recv(conn->sock, data, length, 0)
-        : (int)SSL_read(conn->ssl, data, length);
+    int read;
+    if(conn->ssl == NULL)
+        read = (int)recv(conn->sock, data, length,
+            (flags & KMJ_TCP_WHOLE) ? MSG_WAITALL : 0);
+    else {
+        if(flags & KMJ_TCP_WHOLE) {
+            char* ptr = data;
 
-    if(length <= 0) {
+            while(length > 0) {
+                read = (int)SSL_read(conn->ssl, ptr, length);
+                if(read <= 0)
+                    break;
+
+                ptr += read;
+                length -= read;
+            }
+
+            read = (read > 0) ? length : read;
+        } else
+            read = (int)SSL_read(conn->ssl, data, length);
+    }
+
+    if(read <= 0) {
         tcp_close(conn);
         return -1;
     }
 
-    return length;
+    return read;
 }
 
 int tcp_is_open(tcp_t* conn) {
@@ -134,25 +188,13 @@ int tcp_is_secure(tcp_t* conn) {
     return conn->ssl != NULL;
 }
 
-void _tcp_set_blocking(tcp_t* conn, int block) {
-    if(!conn->sock_open)
-        return;
-
-    int flags = fcntl(conn->sock, F_GETFL, 0);
-    flags = block ? flags & ~O_NONBLOCK
-                  : flags | O_NONBLOCK;
-    fcntl(conn->sock, F_SETFL, flags);
-}
-
 int tcp_is_data_ready(tcp_t* conn) {
     if(!conn->sock_open)
         return 0;
 
-    _tcp_set_blocking(conn, 0);
     char dummy;
-    int check = (int)recv(conn->sock, &dummy, 1, MSG_PEEK),
+    int check = (int)recv(conn->sock, &dummy, 1, MSG_PEEK | MSG_DONTWAIT),
         error = errno;
-    _tcp_set_blocking(conn, 1);
 
     if(check <= 0) {
         if(check != 0 && (error == EWOULDBLOCK || error == EAGAIN))
