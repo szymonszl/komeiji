@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.7)
 project(kmj)
 
-string(COMPARE EQUAL ${CMAKE_BUILD_TYPE} Debug _CMP)
+string(COMPARE EQUAL "${CMAKE_BUILD_TYPE}" Debug _CMP)
 if(_CMP)
     set(CMAKE_VERBOSE_MAKEFILE ON)
     add_definitions("-DKMJ_DEBUG")

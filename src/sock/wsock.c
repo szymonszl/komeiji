@@ -89,7 +89,7 @@ wsock_t* wsock_open(const char* url) {
 
     // TODO check returned nonce but i really dont care right now
 
-    char accept[] = "HTTP/1.1 101 Switching Protocols\r\n";
+    char accept[] = "HTTP/1.1 101";
     if(strncmp(accept, header, sizeof(accept) - 1) != 0) {
         buffer_free(buffer);
         tcp_close(conn->conn);
