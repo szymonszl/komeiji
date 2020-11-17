@@ -63,7 +63,7 @@ wsock_t* wsock_open(const char* url) {
 
         int i, found = 0;
         header = buffer_read(buffer, &header_length);
-        for(i = 0; i < header_length - 4; ++i) {
+        for(i = 0; i < header_length - 3; ++i) {
             if(strncmp("\r\n\r\n", header + i, 4) == 0) {
                 found = 1;
                 break;
@@ -109,7 +109,7 @@ int wsock_send(wsock_t* conn, buffer_t* buffer) {
     int header_length = 2, body_length;
     body = buffer_read(buffer, &body_length);
 
-    header[0] = 0x82;
+    header[0] = 0x81;
     header[1] = 0x80;
     if(body_length < 126)
         header[1] |= body_length;
@@ -233,7 +233,8 @@ int _wsock_recv(wsock_t* conn, buffer_t* data) {
     return final;
 }
 
-int wsock_recv(wsock_t* conn, buffer_t* data) {
+int wsock_recv(wsock_t* conn, buffer_t* data, int blocking) {
+    if (!blocking && !tcp_is_data_ready(conn->conn)) return 0;
     int status;
     while((status = _wsock_recv(conn, data)) == 0);
     

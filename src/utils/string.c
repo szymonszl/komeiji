@@ -135,7 +135,7 @@ void num_write(char* str, uint64_t n, int bytes) {
 uint64_t num_read(const char* str, int bytes) {
     int n = 0;
     for(int i = 0; i < bytes; ++i)
-        n = (n << 8) | str[i];
+        n = (n << 8) | (str[i] & 0xFF);
 
     return n;
 }
