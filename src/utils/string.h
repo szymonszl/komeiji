@@ -10,6 +10,8 @@
 char* str_lower(char*);
 char* str_upper(char*);
 
+int str_prefix(const char*, const char*);
+
 char* base64_encode(const char*, int length);
 char* base64_encode_str(const char*);
 char* base64_decode(const char*);

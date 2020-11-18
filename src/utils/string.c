@@ -12,6 +12,10 @@ char* str_upper(char* str) {
     return str;
 }
 
+int str_prefix(const char* str, const char* prefix) {
+    return 0 == strncmp(str, prefix, strlen(prefix));
+}
+
 #define B64_PADDING 0x00
 #define B64_IGNORE  0xFF
 
