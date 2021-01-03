@@ -14,11 +14,17 @@ file(GLOB_RECURSE komeiji_src
 
 find_package(OpenSSL)
 
+add_library(libkoishi STATIC
+    "lib/libkoishi/libkoishi/libkoishi.c"
+    "lib/libkoishi/libkoishi/libkoishi.h"
+)
+include_directories("lib/libkoishi/libkoishi")
+
 add_executable(komeiji ${komeiji_src})
 target_include_directories(komeiji
     PRIVATE ${PROJECT_SOURCE_DIR}/src
     PRIVATE ${OPENSSL_INCLUDE_DIR})
-target_link_libraries(komeiji ${OPENSSL_LIBRARIES})
+target_link_libraries(komeiji libkoishi ${OPENSSL_LIBRARIES})
 install(TARGETS komeiji RUNTIME DESTINATION bin)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
