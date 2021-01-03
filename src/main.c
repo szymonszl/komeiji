@@ -5,10 +5,10 @@
 #include <signal.h>
 #include <stdarg.h>
 
+#include <libkoishi.h>
 #include "sock/wsock.h"
 #include "utils/buffer.h"
 #include "utils/string.h"
-#include "libkoishi/libkoishi.h"
 
 volatile sig_atomic_t running = 1;
 void sigint_handler(int sig) {
@@ -24,7 +24,7 @@ static struct {
     char prefix;
 } config = {0};
 
-ksh_markovdict_t *markov;
+ksh_model_t *markov;
 wsock_t *conn;
 buffer_t *ib, *ob;
 
@@ -47,10 +47,44 @@ void sendchatf(const char* msg, ...) {
     va_end(args);
 }
 void trainmarkov(const char* msg) {
+    char buf[5120]; // max flashii message length is 5000, this should be enough
+    int cur = 0;
     if (strstr(msg, "[code]")) return;
+    if (strstr(msg, "[sjis]")) return;
     if (str_prefix(msg, "!markov")) return;
     if (str_prefix(msg, "!np")) return;
-    ksh_trainmarkov(markov, msg);
+    for (int i = 0; msg[i] != 0; i++) {
+        if (str_prefix(&msg[i], " <br/> ")) {
+            buf[cur++] = '\n';
+            i += 6;
+        } else if (str_prefix(&msg[i], "&lt;")) {
+            buf[cur++] = '<';
+            i += 3;
+        } else if (str_prefix(&msg[i], "&gt;")) {
+            buf[cur++] = '>';
+            i += 3;
+        } else if (msg[i] == '[') { // bbcode
+            int ni = i; // new index
+            int max = i + 8; // max length of bbcode
+            if (str_prefix(&msg[i+1], "color=")) {
+                max = i + 30; // cute exception fuck you
+            }
+            if (str_prefix(&msg[i+1], "url=")) {
+                max = i + 250; // how fucking long can urls be christ
+            }
+            while ((msg[ni] != 0) && (ni < max)) {
+                if (msg[ni] == ']') {
+                    i = ni; // apply new index if bbcode ended
+                    break;
+                }
+                ni++;
+            }
+        } else {
+            buf[cur++] = msg[i];
+        }
+    }
+    buf[cur] = 0;
+    ksh_trainmarkov(markov, buf);
 }
 
 void dispatchcommand(const char* cmd, int author) {
@@ -69,35 +103,17 @@ void dispatchcommand(const char* cmd, int author) {
         }
     }
     if (str_prefix(cmd, "markov")) {
-        char sentence[128];
-        ksh_createstring(markov, sentence, 128);
-        buffer_write_str(ob, "2\t186\t"); // FIXME hardcoded uid
-        unsigned char* p = sentence;
-        while (*p) {
-            if ((*p) < 127) // strip non-ascii
-                buffer_write(ob, p, 1);
-            p++;
-        }
-        wsock_send(conn, ob);
-        buffer_truncate(ob);
-        //sendchat(sentence);
+        char sentence[1024];
+        ksh_createstring(markov, sentence, 1024);
+        sendchat(sentence);
     } else if (str_prefix(cmd, "&gt;")) {
-        char sentence[128];
-        ksh_createprefixedstring(markov, sentence, 128, "\0&gt", 1);
-        buffer_write_str(ob, "2\t186\t");
-        unsigned char* p = sentence;
-        while (*p) {
-            if ((*p) < 127) // strip non-ascii
-                buffer_write(ob, p, 1);
-            p++;
-        }
-        wsock_send(conn, ob);
-        buffer_truncate(ob);
-        //sendchat(sentence);
+        // char sentence[256];
+        // ksh_createprefixedstring(markov, sentence, 128, "\0&gt", 1);
+        sendchat("not implemented yet fuck you");
     } else if (str_prefix(cmd, "save") && author == config.ownerid) {
         sendchat("Saving...");
         FILE* f = fopen(config.markovpath, "w");
-        ksh_savedict(markov, f);
+        ksh_savemodel(markov, f);
         fclose(f);
         sendchat("Saved the markov database.");
     } else if (str_prefix(cmd, "exit") && author == config.ownerid) {
@@ -115,7 +131,6 @@ int main(int argc, char** argv) {
          "=  because markov hard  =\n"
          "====                 ====\n");
 
-    srand((unsigned)time(NULL));
     signal(SIGINT, sigint_handler);
 
     // config loading
@@ -135,17 +150,21 @@ int main(int argc, char** argv) {
     fclose(f);
 
     // markov loading
+    markov = ksh_createmodel(20, NULL, time(NULL));
+    if (!markov) {
+        fprintf(stderr, "[!] Couldn't allocate markov model, exiting!");
+        return 1;
+    }
     f = fopen(config.markovpath, "r");
     if (f) {
-        markov = ksh_loaddict(f);
-        if (!markov) {
+        if (ksh_loadmodel(markov, f) < 0) {
             fprintf(stderr, "[!] Invalid markov file, exiting!");
             return 1;
         }
         fclose(f);
     } else {
-        markov = ksh_createdict();
-        printf("[!] Warning: Markov file not found, creating new!\n");
+        perror("[!] Warning: Markov file could not be opened");
+        fprintf(stderr, "[!] Starting with empty model\n");
     }
 
     printf("[+] Connecting to \"%s\"...\n", config.server);
@@ -169,7 +188,7 @@ int main(int argc, char** argv) {
         int status = wsock_recv(conn, ib, 0);
         if (status > 0) {
             char *recvd = buffer_read_str(ib);
-            printf("Received chars: \"%s\"\n", recvd);
+            //printf("Received chars: \"%s\"\n", recvd);
             buffer_truncate(ib);
             // parse the received packet
             char *part = strtok(recvd, "\t");
@@ -186,9 +205,10 @@ int main(int argc, char** argv) {
                         printf("[ ] %4d: \'%s\'\n", author, part);
                         str_lower(part);
                         if (author != config.uid) {
-                            trainmarkov(part);
                             if (part[0] == config.prefix) {
                                 dispatchcommand(part+1, author);
+                            } else {
+                                trainmarkov(part);
                             }
                         }
                         break;
@@ -211,7 +231,7 @@ int main(int argc, char** argv) {
         }
         if ((ts.tv_sec-lastsave.tv_sec) > 10*60) {
             f = fopen(config.markovpath, "w");
-            ksh_savedict(markov, f);
+            ksh_savemodel(markov, f);
             fclose(f);
             printf("[+] Saved markov.");
             lastsave = ts;
@@ -220,7 +240,7 @@ int main(int argc, char** argv) {
     }
     printf("[!] Loop exited!\n");
     f = fopen(config.markovpath, "w");
-    ksh_savedict(markov, f);
+    ksh_savemodel(markov, f);
     fclose(f);
     printf("[+] Markov saved. Trying to close the socket...\n");
     if (conn) {
