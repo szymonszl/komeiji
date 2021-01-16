@@ -128,7 +128,16 @@ void dispatchcommand(const char* cmd, int author) {
                 break;
             }
         }
-        sendchat(sentence);
+        sendchatf("[color=#789922]%s[/color]", sentence);
+    } else if (str_prefix(cmd, "help")) {
+        sendchatf(
+            "[i][b]Parsee[/b] - Help[/i]\n"
+            "%1$cmarkov - send a randomly generated message\n"
+            "%1$ccontinue <txt> - continue [i]txt[/i] using a Markov chain\n"
+            "%1$c> - generate a greentext message\n"
+            "%1$chelp - post this\n",
+            config.prefix
+        );
     } else if (str_prefix(cmd, "save") && author == config.ownerid) {
         sendchat("Saving...");
         FILE* f = fopen(config.markovpath, "w");
