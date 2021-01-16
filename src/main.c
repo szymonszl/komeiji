@@ -1,3 +1,5 @@
+#define _GNU_SOURCE // needed for CLOCK_MONOTONIC
+
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -32,6 +34,9 @@ void sendchat(const char* msg) {
     char buf[64];
     snprintf(buf, 64, "2\t%d\t", config.uid);
     buffer_write_str(ob, buf);
+    if (msg[0] == '/') {
+        buffer_write_str(ob, "\u200b"); // U+200B ZERO WIDTH SPACE
+    }
     buffer_write_str(ob, msg);
     wsock_send(conn, ob);
     buffer_truncate(ob);
@@ -106,10 +111,24 @@ void dispatchcommand(const char* cmd, int author) {
         char sentence[1024];
         ksh_createstring(markov, sentence, 1024);
         sendchat(sentence);
+    } else if (str_prefix(cmd, "continue")) {
+        char sentence[512];
+        if (strlen(cmd) > 9) {
+            ksh_continuestring(markov, sentence, 256, &cmd[9]);
+            sendchat(sentence);
+        } else {
+            sendchat("[i]Please send a message to finish![/i]");
+        }
     } else if (str_prefix(cmd, "&gt;")) {
-        // char sentence[256];
-        // ksh_createprefixedstring(markov, sentence, 128, "\0&gt", 1);
-        sendchat("not implemented yet fuck you");
+        char sentence[256];
+        ksh_continuestring(markov, sentence, 256, ">");
+        for (int i = 0; i < 256; i++) { // end the sentence at the first newline
+            if (sentence[i] == '\n') {
+                sentence[i] = 0;
+                break;
+            }
+        }
+        sendchat(sentence);
     } else if (str_prefix(cmd, "save") && author == config.ownerid) {
         sendchat("Saving...");
         FILE* f = fopen(config.markovpath, "w");
@@ -194,6 +213,15 @@ int main(int argc, char** argv) {
             char *part = strtok(recvd, "\t");
             if (!part) {
                 printf("[!] Warning: empty string received\n");
+            } else if (0 == strcmp(part, "1")) { // is a login confirmation
+                part = strtok(NULL, "\t"); // y/n
+                if (part[0] == 'y') {
+                    printf("[+] Joined chat!\n");
+                } else {
+                    part = strtok(NULL, "\t"); // failure reason
+                    printf("[!] Could not connect to chat. Reason: '%s'.\n", part);
+                    break;
+                }
             } else if (0 == strcmp(part, "2")) { // is a message
                 int author = 0;
                 for (int i = 1; (part = strtok(NULL, "\t")) != NULL; i++) {
