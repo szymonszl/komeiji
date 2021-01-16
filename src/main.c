@@ -226,11 +226,11 @@ int main(int argc, char** argv) {
                 part = strtok(NULL, "\t"); // y/n
                 if (part[0] == 'y') {
                     printf("[+] Joined chat!\n");
-                } else {
+                } else if (part[0] == 'n') {
                     part = strtok(NULL, "\t"); // failure reason
                     printf("[!] Could not connect to chat. Reason: '%s'.\n", part);
                     break;
-                }
+                } // else it's a join
             } else if (0 == strcmp(part, "2")) { // is a message
                 int author = 0;
                 for (int i = 1; (part = strtok(NULL, "\t")) != NULL; i++) {
