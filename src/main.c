@@ -114,6 +114,11 @@ void cmd_continue_h(const char* args) {
     char sentence[512];
     int len = strlen(args);
     if (args) {
+        char *ultrameme = strstr(args, ":ultreme:");
+        if (ultrameme) {
+            sendchat(":mewow:");
+            return;
+        }
         for (int i = 0; i < 5; i++) { // up to 5 rolls
             ksh_continuestring(markov, sentence, 512, args);
             // printf("Roll %i: '%s'[%d] -> '%s'[%d]\n", i, args, len, sentence, strlen(sentence));
