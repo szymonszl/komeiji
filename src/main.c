@@ -152,8 +152,18 @@ command_definition cmd_greentext = {
     .has_arguments = 0
 };
 
+const char *parseequotes[] = {
+    "Oh, are you a human?",
+    "You know about me? Who are you?",
+    "What does a human want in the Former Capital?",
+    "I don't have anything against you, but I can make up lots of reasons to attack you.",
+    "Hmph, are you looking down on me?"
+};
+
 void cmd_help_h(const char* args) {
-    sendchat(helptext);
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    sendchatf(helptext, parseequotes[ts.tv_nsec%5]); // wdym
 }
 command_definition cmd_help = {
     .keywords = "help ?",
@@ -259,7 +269,7 @@ int main(int argc, char** argv) {
     }
     fclose(f);
 
-    generate_help(helptext, 1024, commands, "[b]Parsee![/b]", config.prefix);
+    generate_help(helptext, 1024, commands, "[color=#ebc18f][b]Parsee[/b] - %s[/color]", config.prefix);
 
     // markov loading
     markov = ksh_createmodel(20, NULL, time(NULL));
