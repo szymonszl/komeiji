@@ -112,8 +112,14 @@ command_definition cmd_markov = {
 
 void cmd_continue_h(const char* args) {
     char sentence[512];
+    int len = strlen(args);
     if (args) {
-        ksh_continuestring(markov, sentence, 256, args);
+        for (int i = 0; i < 5; i++) { // up to 5 rolls
+            ksh_continuestring(markov, sentence, 512, args);
+            // printf("Roll %i: '%s'[%d] -> '%s'[%d]\n", i, args, len, sentence, strlen(sentence));
+            if (strlen(sentence) != len)
+                break;
+        }
         sendchat(sentence);
     } else {
         sendchat("[i]Please send a message to finish![/i]");
