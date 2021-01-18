@@ -112,8 +112,8 @@ command_definition cmd_markov = {
 
 void cmd_continue_h(const char* args) {
     char sentence[512];
-    int len = strlen(args);
     if (args) {
+        int len = strlen(args);
         char *ultrameme = strstr(args, ":ultreme:");
         if (ultrameme) {
             sendchat(":mewow:");
