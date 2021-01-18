@@ -4,7 +4,7 @@ project(kmj)
 string(COMPARE EQUAL "${CMAKE_BUILD_TYPE}" Debug _CMP)
 if(_CMP)
     set(CMAKE_VERBOSE_MAKEFILE ON)
-    add_definitions("-DKMJ_DEBUG")
+    add_definitions("-DKMJ_DEBUG -Wall")
 endif()
 
 file(GLOB_RECURSE komeiji_src

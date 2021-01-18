@@ -11,6 +11,7 @@
 #include "sock/wsock.h"
 #include "utils/buffer.h"
 #include "utils/string.h"
+#include "utils/cmddisp.h"
 
 volatile sig_atomic_t running = 1;
 void sigint_handler(int sig) {
@@ -29,6 +30,7 @@ static struct {
 ksh_model_t *markov;
 wsock_t *conn;
 buffer_t *ib, *ob;
+char helptext[1024];
 
 void sendchat(const char* msg) {
     char buf[64];
@@ -91,8 +93,108 @@ void trainmarkov(const char* msg) {
     buf[cur] = 0;
     ksh_trainmarkov(markov, buf);
 }
+/////////////////
+/// COMMANDS
+/////////////////
 
-void dispatchcommand(const char* cmd, int author) {
+void cmd_markov_h(const char* args) {
+    char sentence[1024];
+    ksh_createstring(markov, sentence, 1024);
+    sendchat(sentence);
+}
+command_definition cmd_markov = {
+    .keywords = "markov voodoo",
+    .description = "send a randomly generated message",
+    .handler = cmd_markov_h,
+    .admin_only = 0,
+    .has_arguments = 0
+};
+
+void cmd_continue_h(const char* args) {
+    char sentence[512];
+    if (args) {
+        ksh_continuestring(markov, sentence, 256, args);
+        sendchat(sentence);
+    } else {
+        sendchat("[i]Please send a message to finish![/i]");
+    }
+}
+command_definition cmd_continue = {
+    .keywords = "continue c",
+    .description = "continue the argument using a Markov chain",
+    .handler = cmd_continue_h,
+    .admin_only = 0,
+    .has_arguments = 1
+};
+
+void cmd_greentext_h(const char* args) {
+    char sentence[256];
+    ksh_continuestring(markov, sentence, 256, ">");
+    for (int i = 0; i < 256; i++) { // end the sentence at the first newline
+        if (sentence[i] == '\n') {
+            sentence[i] = 0;
+            break;
+        }
+    }
+    sendchatf("[color=#789922]%s[/color]", sentence);
+}
+command_definition cmd_greentext = {
+    .keywords = ">",
+    .description = "generate a greentext message",
+    .handler = cmd_greentext_h,
+    .admin_only = 0,
+    .has_arguments = 0
+};
+
+void cmd_help_h(const char* args) {
+    sendchat(helptext);
+}
+command_definition cmd_help = {
+    .keywords = "help ?",
+    .description = "post this",
+    .handler = cmd_help_h,
+    .admin_only = 0,
+    .has_arguments = 0
+};
+
+void cmd_save_h(const char* args) {
+    sendchat("Saving...");
+    FILE* f = fopen(config.markovpath, "w");
+    ksh_savemodel(markov, f);
+    fclose(f);
+    sendchat("Saved the markov database.");
+}
+command_definition cmd_save = {
+    .keywords = "save",
+    .description = NULL,
+    .handler = cmd_save_h,
+    .admin_only = 1,
+    .has_arguments = 0
+};
+
+void cmd_exit_h(const char* args) {
+    sendchat("Exiting...");
+    running = 0;
+}
+command_definition cmd_exit = {
+    .keywords = "exit",
+    .description = NULL,
+    .handler = cmd_exit_h,
+    .admin_only = 1,
+    .has_arguments = 0
+};
+
+
+command_definition *commands[] = {
+    &cmd_markov, &cmd_continue, &cmd_greentext, &cmd_help,
+    &cmd_save, &cmd_exit, 0
+};
+
+/// END COMMANDS
+/////////////////
+
+
+void dispatchcommand(char* msg, int author) {
     static struct timespec lastts = {0,0}, ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     if (author != config.ownerid) {
@@ -107,47 +209,21 @@ void dispatchcommand(const char* cmd, int author) {
             }
         }
     }
-    if (str_prefix(cmd, "markov")) {
-        char sentence[1024];
-        ksh_createstring(markov, sentence, 1024);
-        sendchat(sentence);
-    } else if (str_prefix(cmd, "continue")) {
-        char sentence[512];
-        if (strlen(cmd) > 9) {
-            ksh_continuestring(markov, sentence, 256, &cmd[9]);
-            sendchat(sentence);
-        } else {
-            sendchat("[i]Please send a message to finish![/i]");
-        }
-    } else if (str_prefix(cmd, "&gt;")) {
-        char sentence[256];
-        ksh_continuestring(markov, sentence, 256, ">");
-        for (int i = 0; i < 256; i++) { // end the sentence at the first newline
-            if (sentence[i] == '\n') {
-                sentence[i] = 0;
-                break;
-            }
-        }
-        sendchatf("[color=#789922]%s[/color]", sentence);
-    } else if (str_prefix(cmd, "help")) {
-        sendchatf(
-            "[i][b]Parsee[/b] - Help[/i]\n"
-            "%1$cmarkov - send a randomly generated message\n"
-            "%1$ccontinue <txt> - continue [i]txt[/i] using a Markov chain\n"
-            "%1$c> - generate a greentext message\n"
-            "%1$chelp - post this\n",
-            config.prefix
-        );
-    } else if (str_prefix(cmd, "save") && author == config.ownerid) {
-        sendchat("Saving...");
-        FILE* f = fopen(config.markovpath, "w");
-        ksh_savemodel(markov, f);
-        fclose(f);
-        sendchat("Saved the markov database.");
-    } else if (str_prefix(cmd, "exit") && author == config.ownerid) {
-        sendchat("Exiting...");
-        running = 0;
+    char *part = strtok(msg, " ");
+    command_definition *cmd = NULL;
+    if (part != NULL) {
+        cmd = resolve_command(commands, part);
     }
+    if (cmd == NULL)
+        return;
+    if (cmd->admin_only && (author != config.ownerid))
+        return;
+    if (cmd->has_arguments) {
+        part = strtok(NULL, "");
+    } else {
+        part = NULL;
+    }
+    cmd->handler(part);
     lastts = ts;
 }
 
@@ -176,6 +252,8 @@ int main(int argc, char** argv) {
         else fprintf(stderr, "Warning: unrecognized key \"%s\" in config\n", key);
     }
     fclose(f);
+
+    generate_help(helptext, 1024, commands, "[b]Parsee![/b]", config.prefix);
 
     // markov loading
     markov = ksh_createmodel(20, NULL, time(NULL));
@@ -270,7 +348,7 @@ int main(int argc, char** argv) {
             f = fopen(config.markovpath, "w");
             ksh_savemodel(markov, f);
             fclose(f);
-            printf("[+] Saved markov.");
+            printf("[+] Saved markov.\n");
             lastsave = ts;
         }
         usleep(10000);
