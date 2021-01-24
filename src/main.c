@@ -150,7 +150,7 @@ void cmd_greentext_h(const char* args) {
     sendchatf("[color=#789922]%s[/color]", sentence);
 }
 command_definition cmd_greentext = {
-    .keywords = ">",
+    .keywords = "&gt;",
     .description = "generate a greentext message",
     .handler = cmd_greentext_h,
     .admin_only = 0,
