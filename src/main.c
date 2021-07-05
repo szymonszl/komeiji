@@ -54,7 +54,7 @@ void sendchatf(const char* msg, ...) {
     va_end(args);
 }
 void trainmarkov(const char* msg) {
-    char buf[5120]; // max flashii message length is 5000, this should be enough
+    char buf[20008]; // max flashii message length is 5000 characters, assuming worst case four bytes per char (utf-8) + eight more bytes because trust issues
     int cur = 0;
     if (strstr(msg, "[code]")) return;
     if (strstr(msg, "[sjis]")) return;
