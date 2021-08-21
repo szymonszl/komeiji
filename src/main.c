@@ -24,10 +24,12 @@ static struct {
     int ownerid;
     char *auth;
     char *markovpath;
+    char *javpath;
     char prefix;
 } config = {0};
 
 ksh_model_t *markov;
+ksh_model_t *jav;
 wsock_t *conn;
 buffer_t *ib, *ob;
 char helptext[1024];
@@ -157,6 +159,23 @@ command_definition cmd_greentext = {
     .has_arguments = 0
 };
 
+void cmd_jav_h(const char* args) {
+    if (jav) {
+        char title[1024];
+        ksh_createstring(jav, title, 1024);
+        sendchat(title);
+    } else {
+        sendchat("[i]error: no JAV title model[/i]");
+    }
+}
+command_definition cmd_jav = {
+    .keywords = "jav",
+    .description = "create a Japanese Adult Video title",
+    .handler = cmd_jav_h,
+    .admin_only = 0,
+    .has_arguments = 0
+};
+
 const char *parseequotes[] = {
     "Oh, are you a human?",
     "You know about me? Who are you?",
@@ -207,7 +226,8 @@ command_definition cmd_exit = {
 
 
 command_definition *commands[] = {
-    &cmd_markov, &cmd_continue, &cmd_greentext, &cmd_help,
+    &cmd_markov, &cmd_continue, &cmd_greentext,
+    &cmd_jav, &cmd_help,
     &cmd_save, &cmd_exit, 0
 };
 
@@ -269,6 +289,7 @@ int main(int argc, char** argv) {
         else if (0 == strcmp(key, "ownerid")) config.ownerid = strtol(val, NULL, 10);
         else if (0 == strcmp(key, "auth")) config.auth = strdup(val);
         else if (0 == strcmp(key, "markovpath")) config.markovpath = strdup(val);
+        else if (0 == strcmp(key, "javpath")) config.javpath = strdup(val);
         else if (0 == strcmp(key, "prefix")) config.prefix = val[0];
         else fprintf(stderr, "Warning: unrecognized key \"%s\" in config\n", key);
     }
@@ -292,6 +313,25 @@ int main(int argc, char** argv) {
     } else {
         perror("[!] Warning: Markov file could not be opened");
         fprintf(stderr, "[!] Starting with empty model\n");
+    }
+
+    jav = ksh_createmodel(10, NULL, time(NULL));
+    if (!markov) {
+        fprintf(stderr, "[!] Couldn't allocate JAV markov model, exiting!");
+        return 1;
+    }
+    FILE *f2 = fopen(config.javpath, "r");
+    if (f2) {
+        if (ksh_loadmodel(jav, f2) < 0) {
+            fprintf(stderr, "[!] Invalid markov file, exiting!");
+            return 1;
+        }
+        fclose(f);
+    } else {
+        perror("[!] Warning: JAV markov file could not be opened");
+        fprintf(stderr, "[!] Starting with disabled JAV functionality");
+        ksh_freemodel(jav);
+        jav = NULL;
     }
 
     printf("[+] Connecting to \"%s\"...\n", config.server);
