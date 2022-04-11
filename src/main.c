@@ -33,6 +33,39 @@ ksh_model_t *jav;
 wsock_t *conn;
 buffer_t *ib, *ob;
 char helptext[1024];
+struct user {
+    struct user *next;
+    int id;
+    char *name;
+};
+struct user *users = NULL;
+
+struct user *
+user_get(int id) {
+    for (struct user *u = users; u != NULL; u = u->next) {
+        if (u->id == id)
+            return u;
+    }
+    return NULL;
+}
+
+void
+user_add_or_update(int id, const char* name) {
+    struct user *u = user_get(id);
+    if (!u) {
+        u = malloc(sizeof(struct user));
+        u->next = users;
+        users = u;
+        u->id = id;
+        u->name = strdup(name);
+        return;
+    } else {
+        if (0 != strcmp(u->name, name)) {
+            free(u->name);
+            u->name = strdup(name);
+        }
+    }
+}
 
 void sendchat(const char* msg) {
     char buf[64];
@@ -364,12 +397,21 @@ int main(int argc, char** argv) {
             } else if (0 == strcmp(part, "1")) { // is a login confirmation
                 part = strtok(NULL, "\t"); // y/n
                 if (part[0] == 'y') {
+                    part = strtok(NULL, "\t"); // session uid
+                    part = strtok(NULL, "\t"); // username
+                    user_add_or_update(config.uid, part);
                     printf("[+] Joined chat!\n");
                 } else if (part[0] == 'n') {
                     part = strtok(NULL, "\t"); // failure reason
                     printf("[!] Could not connect to chat. Reason: '%s'.\n", part);
                     break;
-                } // else it's a join
+                } else { // someone joined
+                    part = strtok(NULL, "\t"); // timestamp
+                    part = strtok(NULL, "\t"); // uid
+                    int id = strtol(part, NULL, 10);
+                    part = strtok(NULL, "\t"); // username
+                    user_add_or_update(id, part);
+                }
             } else if (0 == strcmp(part, "2")) { // is a message
                 int author = 0;
                 for (int i = 1; (part = strtok(NULL, "\t")) != NULL; i++) {
@@ -378,7 +420,7 @@ int main(int argc, char** argv) {
                         author = strtol(part, NULL, 10);
                     }
                     if (i == 3) { // message text
-                        printf("[ ] %4d: \'%s\'\n", author, part);
+                        printf("[ ] %s: \'%s\'\n", user_get(author)->name, part);
                         str_lower(part);
                         if (author != config.uid) {
                             if (part[0] == config.prefix) {
@@ -390,6 +432,26 @@ int main(int argc, char** argv) {
                         break;
                     }
                 }
+            } else if (0 == strcmp(part, "7")) { // contexts
+                part = strtok(NULL, "\t"); // subtype
+                if (0 == strcmp(part, "0")) { // user
+                    part = strtok(NULL, "\t");
+                    int usercount = strtol(part, NULL, 10);
+                    for (int i = 0; i < usercount; i++) {
+                        part = strtok(NULL, "\t"); // user id
+                        int id = strtol(part, NULL, 10);
+                        part = strtok(NULL, "\t"); // username
+                        user_add_or_update(id, part);
+                        part = strtok(NULL, "\t"); // css color
+                        part = strtok(NULL, "\t"); // perms
+                        part = strtok(NULL, "\t"); // visible
+                    }
+                }
+            } else if (0 == strcmp(part, "10")) { // user update
+                part = strtok(NULL, "\t"); // uid
+                int id = strtol(part, NULL, 10);
+                part = strtok(NULL, "\t"); // username
+                user_add_or_update(id, part);
             }
             free(recvd);
         } else if (status < 0) {
