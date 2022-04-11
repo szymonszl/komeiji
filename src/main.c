@@ -132,7 +132,7 @@ void trainmarkov(const char* msg) {
 /// COMMANDS
 /////////////////
 
-void cmd_markov_h(const char* args) {
+void cmd_markov_h(int author, const char* args) {
     char sentence[1024];
     ksh_createstring(markov, sentence, 1024);
     sendchat(sentence);
@@ -145,7 +145,7 @@ command_definition cmd_markov = {
     .has_arguments = 0
 };
 
-void cmd_continue_h(const char* args) {
+void cmd_continue_h(int author, const char* args) {
     char sentence[512];
     if (args) {
         int len = strlen(args);
@@ -173,7 +173,7 @@ command_definition cmd_continue = {
     .has_arguments = 1
 };
 
-void cmd_greentext_h(const char* args) {
+void cmd_greentext_h(int author, const char* args) {
     char sentence[256];
     ksh_continuestring(markov, sentence, 256, ">");
     for (int i = 0; i < 256; i++) { // end the sentence at the first newline
@@ -192,7 +192,7 @@ command_definition cmd_greentext = {
     .has_arguments = 0
 };
 
-void cmd_jav_h(const char* args) {
+void cmd_jav_h(int author, const char* args) {
     if (jav) {
         char title[1024];
         ksh_createstring(jav, title, 1024);
@@ -217,7 +217,7 @@ const char *parseequotes[] = {
     "Hmph, are you looking down on me?"
 };
 
-void cmd_help_h(const char* args) {
+void cmd_help_h(int author, const char* args) {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     sendchatf(helptext, parseequotes[ts.tv_nsec%5]); // wdym
@@ -230,7 +230,7 @@ command_definition cmd_help = {
     .has_arguments = 0
 };
 
-void cmd_save_h(const char* args) {
+void cmd_save_h(int author, const char* args) {
     sendchat("Saving...");
     FILE* f = fopen(config.markovpath, "w");
     ksh_savemodel(markov, f);
@@ -245,7 +245,7 @@ command_definition cmd_save = {
     .has_arguments = 0
 };
 
-void cmd_exit_h(const char* args) {
+void cmd_exit_h(int author, const char* args) {
     sendchat("Exiting...");
     running = 0;
 }
@@ -297,7 +297,7 @@ void dispatchcommand(char* msg, int author) {
     } else {
         part = NULL;
     }
-    cmd->handler(part);
+    cmd->handler(author, part);
     lastts = ts;
 }
 

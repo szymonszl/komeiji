@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-typedef void (*handler_t)(const char*);
+typedef void (*handler_t)(int, const char*);
 
 typedef struct {
     char *keywords;
