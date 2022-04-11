@@ -192,6 +192,43 @@ command_definition cmd_greentext = {
     .has_arguments = 0
 };
 
+#define BEGIN_LEN 9
+const static char *beginnings[BEGIN_LEN] = {
+    "tomorrow you will ",
+    "tomorrow fate ",
+    "# fate:",
+    "# will ",
+    "# soon will ",
+    "soon you will ",
+    "# fortune:",
+    "fortune for #:",
+    "tomorrow fortune:",
+};
+void cmd_fortune_h(int author, const char* args) {
+    char sentence[1024];
+    char beginning[1024];
+    memset(beginning, 0, sizeof(beginning));
+    int n = rand() % BEGIN_LEN;
+    int c = 0;
+    for (int i = 0; beginnings[n][i]; i++) {
+        if (beginnings[n][i] == '#') {
+            strcat(beginning, user_get(author)->name);
+            c += strlen(user_get(author)->name);
+        } else {
+            beginning[c++] = beginnings[n][i];
+        }
+    }
+    ksh_continuestring(markov, sentence, 1024, beginning);
+    sendchatf("%s", sentence);
+}
+command_definition cmd_fortune = {
+    .keywords = "fortune",
+    .description = "generate a random fortune",
+    .handler = cmd_fortune_h,
+    .admin_only = 0,
+    .has_arguments = 0
+};
+
 void cmd_jav_h(int author, const char* args) {
     if (jav) {
         char title[1024];
@@ -259,7 +296,7 @@ command_definition cmd_exit = {
 
 
 command_definition *commands[] = {
-    &cmd_markov, &cmd_continue, &cmd_greentext,
+    &cmd_markov, &cmd_continue, &cmd_greentext, &cmd_fortune,
     &cmd_jav, &cmd_help,
     &cmd_save, &cmd_exit, 0
 };
