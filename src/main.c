@@ -49,10 +49,23 @@ user_get(int id) {
     return NULL;
 }
 
+const char *
+user_name(int id) {
+    struct user *u;
+    if (u = user_get(id)) {
+        return u->name;
+    }
+    static char oops[10];
+    printf("[!] no name known for %d\n", id);
+    snprintf(oops, 10, "[%d]", id);
+    return oops;
+}
+
 void
 user_add_or_update(int id, const char* name) {
     struct user *u = user_get(id);
     if (!u) {
+        printf("[+] user add %d as '%s'\n", id, name);
         u = malloc(sizeof(struct user));
         u->next = users;
         users = u;
@@ -61,6 +74,7 @@ user_add_or_update(int id, const char* name) {
         return;
     } else {
         if (0 != strcmp(u->name, name)) {
+            printf("[+] user update %d '%s' -> '%s'\n", id, u->name, name);
             free(u->name);
             u->name = strdup(name);
         }
@@ -212,8 +226,8 @@ void cmd_fortune_h(int author, const char* args) {
     int c = 0;
     for (int i = 0; beginnings[n][i]; i++) {
         if (beginnings[n][i] == '#') {
-            strcat(beginning, user_get(author)->name);
-            c += strlen(user_get(author)->name);
+            strcat(beginning, user_name(author));
+            c += strlen(user_name(author));
         } else {
             beginning[c++] = beginnings[n][i];
         }
@@ -457,7 +471,7 @@ int main(int argc, char** argv) {
                         author = strtol(part, NULL, 10);
                     }
                     if (i == 3) { // message text
-                        printf("[ ] %s: \'%s\'\n", user_get(author)->name, part);
+                        printf("[ ] %s: \'%s\'\n", user_name(author), part);
                         str_lower(part);
                         if (author != config.uid) {
                             if (part[0] == config.prefix) {
