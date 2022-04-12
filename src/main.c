@@ -446,7 +446,7 @@ int main(int argc, char** argv) {
             if (!part) {
                 printf("[!] Warning: empty string received\n");
             } else if (0 == strcmp(part, "1")) { // is a login confirmation
-                part = strtok(NULL, "\t"); // y/n
+                part = strtok(NULL, "\t"); // y/n/timestamp
                 if (part[0] == 'y') {
                     part = strtok(NULL, "\t"); // session uid
                     part = strtok(NULL, "\t"); // username
@@ -457,7 +457,6 @@ int main(int argc, char** argv) {
                     printf("[!] Could not connect to chat. Reason: '%s'.\n", part);
                     break;
                 } else { // someone joined
-                    part = strtok(NULL, "\t"); // timestamp
                     part = strtok(NULL, "\t"); // uid
                     int id = strtol(part, NULL, 10);
                     part = strtok(NULL, "\t"); // username
