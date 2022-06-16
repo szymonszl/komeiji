@@ -236,7 +236,7 @@ void cmd_fortune_h(int author, const char* args) {
     sendchatf("%s", sentence);
 }
 command_definition cmd_fortune = {
-    .keywords = "fortune",
+    .keywords = "fortune fate",
     .description = "generate a random fortune",
     .handler = cmd_fortune_h,
     .admin_only = 0,
