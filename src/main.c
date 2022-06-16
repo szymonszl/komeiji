@@ -217,6 +217,8 @@ const static char *beginnings[BEGIN_LEN] = {
     "# fortune:",
     "fortune for #:",
     "tomorrow fortune:",
+    "i am certain # ",
+    "In @ # Will ",
 };
 void cmd_fortune_h(int author, const char* args) {
     char sentence[1024];
@@ -228,6 +230,13 @@ void cmd_fortune_h(int author, const char* args) {
         if (beginnings[n][i] == '#') {
             strcat(beginning, user_name(author));
             c += strlen(user_name(author));
+        } else if (beginnings[n][i] == '@') {
+            char buf[6];
+            time_t t = time(NULL);
+            struct tm *ts = gmtime(&t);
+            strftime(buf, 5, "%Y", ts);
+            strcat(beginning, buf);
+            c += strlen(buf);
         } else {
             beginning[c++] = beginnings[n][i];
         }
