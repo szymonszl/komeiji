@@ -52,7 +52,7 @@ user_get(int id) {
 const char *
 user_name(int id) {
     struct user *u;
-    if (u = user_get(id)) {
+    if ((u = user_get(id))) { // assignment intened
         return u->name;
     }
     static char oops[10];
@@ -206,7 +206,7 @@ command_definition cmd_greentext = {
     .has_arguments = 0
 };
 
-#define BEGIN_LEN 9
+#define BEGIN_LEN 11
 const static char *beginnings[BEGIN_LEN] = {
     "tomorrow you will ",
     "tomorrow fate ",
@@ -234,6 +234,9 @@ void cmd_fortune_h(int author, const char* args) {
             char buf[6];
             time_t t = time(NULL);
             struct tm *ts = gmtime(&t);
+            if ((rand() & 0x30) == 0x10) { // 1 in 4 chance
+                ts->tm_year += rand() % 5;
+            }
             strftime(buf, 5, "%Y", ts);
             strcat(beginning, buf);
             c += strlen(buf);
