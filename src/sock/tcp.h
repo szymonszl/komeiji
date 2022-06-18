@@ -69,5 +69,6 @@ int tcp_is_secure(tcp_t*);
 int tcp_is_data_ready(tcp_t*);
 
 void tcp_close(tcp_t*);
+void tcp_free(tcp_t*);
 
 #endif

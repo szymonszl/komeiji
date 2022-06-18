@@ -215,8 +215,13 @@ void tcp_close(tcp_t* conn) {
     shutdown(conn->sock, SHUT_RDWR);
     close(conn->sock);
     if(conn->ssl != NULL)
-        SSL_free(conn->ssl);
+        SSL_free(conn->ssl); // this one is safe to close early i think?
 
+    conn->sock_open = 0;
+}
+
+void tcp_free(tcp_t *conn) {
+    tcp_close(conn);
     free(conn);
 }
 
