@@ -551,7 +551,7 @@ int main(int argc, char** argv) {
     fclose(f);
     printf("[+] Markov saved. Trying to close the socket...\n");
     if (conn) {
-        wsock_close(conn);
+        wsock_free(conn);
     }
     buffer_free(ib);
     buffer_free(ob);

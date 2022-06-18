@@ -21,5 +21,6 @@ int wsock_send(wsock_t*, buffer_t*);
 int wsock_recv(wsock_t*, buffer_t*, int);
 
 void wsock_close(wsock_t*);
+void wsock_free(wsock_t*);
 
 #endif

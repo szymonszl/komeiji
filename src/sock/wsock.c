@@ -245,5 +245,12 @@ void wsock_close(wsock_t* conn) {
     const char close[] = { 0x88, 0x00 };
     
     tcp_send_raw(conn->conn, close, sizeof(close));
-    tcp_close(conn->conn);
+    tcp_free(conn->conn);
+    conn->conn = NULL;
+}
+
+void wsock_free(wsock_t* conn) {
+    if (conn->conn)
+        wsock_close(conn);
+    free(conn);
 }
