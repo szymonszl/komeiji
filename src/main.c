@@ -315,7 +315,7 @@ command_definition cmd_save = {
     .description = NULL,
     .handler = cmd_save_h,
     .admin_only = 1,
-    .has_arguments = 0
+    .has_arguments = 1
 };
 
 void cmd_exit_h(int author, const char* args) {
