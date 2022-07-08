@@ -190,7 +190,9 @@ int tcp_is_secure(tcp_t* conn) {
 
 int tcp_is_data_ready(tcp_t* conn) {
     if(!conn->sock_open)
-        return 0;
+        return 1; // i think "the sock died" is important information
+                  // and should be classified as data
+                  // also, keeps all if (data_ready()) read(); loops working
 
     char dummy;
     int check = (int)recv(conn->sock, &dummy, 1, MSG_PEEK | MSG_DONTWAIT),
