@@ -301,8 +301,11 @@ command_definition cmd_help = {
 };
 
 void cmd_save_h(int author, const char* args) {
-    sendchat("Saving...");
-    FILE* f = fopen(config.markovpath, "w");
+    if (!args || !args[0]) {
+        args = config.markovpath;
+    }
+    sendchatf("Saving to [code]%s[/code]...", args);
+    FILE* f = fopen(args, "w");
     ksh_savemodel(markov, f);
     fclose(f);
     sendchat("Saved the markov database.");
