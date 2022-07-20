@@ -251,7 +251,11 @@ void cmd_fortune_h(int author, const char* args) {
             beginning[c++] = beginnings[n][i];
         }
     }
-    ksh_continuestring(markov, sentence, 1024, beginning);
+    for (int i = 0; i < 5; i++) { // up to 5 rolls
+        ksh_continuestring((rand()%1234)?markov:jav, sentence, 1024, beginning);
+        if (strlen(sentence) != strlen(beginning))
+            break;
+    }
     sendchatf("%s", sentence);
 }
 command_definition cmd_fortune = {
