@@ -251,11 +251,15 @@ void cmd_fortune_h(int author, const char* args) {
             beginning[c++] = beginnings[n][i];
         }
     }
+    char *lbegin = strdup(beginning); // use a lowercase copy to generate
+    str_lower(lbegin);
     for (int i = 0; i < 5; i++) { // up to 5 rolls
-        ksh_continuestring((rand()%1234)?markov:jav, sentence, 1024, beginning);
+        ksh_continuestring((rand()%1234)?markov:jav, sentence, 1024, lbegin);
         if (strlen(sentence) != strlen(beginning))
             break;
     }
+    free(lbegin);
+    memcpy(sentence, beginning, strlen(beginning)); // then copy the Cased version back over
     sendchatf("%s", sentence);
 }
 command_definition cmd_fortune = {
