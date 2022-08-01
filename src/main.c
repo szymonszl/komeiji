@@ -483,7 +483,7 @@ int main(int argc, char** argv) {
     wsock_send(conn, ob);
     buffer_truncate(ob);
     printf("[+] Login packet sent!\n");
-    struct timespec lastsave, lastping, ts;
+    double lastsave = 0, lastping = 0;
     while (running) {
         int status = wsock_recv(conn, ib, 0);
         if (status > 0) {
@@ -558,15 +558,15 @@ int main(int argc, char** argv) {
             conn = NULL;
             break;
         }
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        if ((ts.tv_sec-lastping.tv_sec) > 10) {
+        double ts = timestamp(CLOCK_MONOTONIC);
+        if (ts - lastping > 10) {
             sprintf(buf, "0\t%d", config.uid);
             buffer_write_str(ob, buf);
             wsock_send(conn, ob);
             buffer_truncate(ob);
             lastping = ts;
         }
-        if ((ts.tv_sec-lastsave.tv_sec) > 10*60) {
+        if (ts - lastsave > 10*60) {
             f = fopen(config.markovpath, "w");
             ksh_savemodel(markov, f);
             fclose(f);
