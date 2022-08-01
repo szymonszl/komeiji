@@ -142,6 +142,17 @@ void trainmarkov(const char* msg) {
     buf[cur] = 0;
     ksh_trainmarkov(markov, buf);
 }
+
+double
+timestamp(clockid_t clock)
+{
+    struct timespec ts;
+    clock_gettime(clock, &ts); 
+    double t = ts.tv_sec;
+    t += ((double)ts.tv_nsec) / 1000000000.0;
+    return t;
+}
+
 /////////////////
 /// COMMANDS
 /////////////////
@@ -350,18 +361,13 @@ command_definition *commands[] = {
 
 
 void dispatchcommand(char* msg, int author) {
-    static struct timespec lastts = {0,0}, ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
+    static double lastts = 0, ts;
+    ts = timestamp(CLOCK_MONOTONIC);
     if (author != config.ownerid) {
-        if ((ts.tv_sec-lastts.tv_sec) < 2) {
-            unsigned long diff =
-                (ts.tv_sec-lastts.tv_sec) * 1000000000L +
-                (ts.tv_nsec-lastts.tv_nsec);
-            if (diff < 1000000000L) {
-                // if not at least a second elapsed, then cancel
-                printf("Command ignored (too soon, diff %ld)\n", diff);
-                return;
-            }
+        if (ts-lastts < 1.0) {
+            // if not at least a second elapsed, then cancel
+            printf("Command ignored (too soon, diff %fs)\n", ts-lastts);
+            return;
         }
     }
     char *part = strtok(msg, " ");
