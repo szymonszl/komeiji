@@ -20,6 +20,12 @@ add_library(libkoishi STATIC
 )
 include_directories("lib/libkoishi/libkoishi")
 
+add_library(levenshtein STATIC
+    "lib/levenshtein/levenshtein.c"
+    "lib/levenshtein/levenshtein.h"
+)
+include_directories("lib/levenshtein")
+
 add_executable(komeiji ${komeiji_src})
 target_include_directories(komeiji
     PRIVATE ${PROJECT_SOURCE_DIR}/src
@@ -28,9 +34,9 @@ target_link_libraries(komeiji libkoishi ${OPENSSL_LIBRARIES})
 install(TARGETS komeiji RUNTIME DESTINATION bin)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    target_link_libraries(komeiji wsock32 ws2_32)
+    target_link_libraries(komeiji levenshtein wsock32 ws2_32)
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    target_link_libraries(komeiji dl pthread nsl resolv)
+    target_link_libraries(komeiji levenshtein dl pthread nsl resolv)
 else()
-    target_link_libraries(komeiji dl pthread socket nsl resolv)
+    target_link_libraries(komeiji levenshtein dl pthread socket nsl resolv)
 endif()

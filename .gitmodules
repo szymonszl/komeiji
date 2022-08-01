@@ -1,3 +1,6 @@
 [submodule "lib/libkoishi"]
 	path = lib/libkoishi
 	url = gitea@git.szy.lol:szymonszl/libkoishi.git
+[submodule "lib/levenshtein"]
+	path = lib/levenshtein
+	url = https://github.com/wooorm/levenshtein.c.git
