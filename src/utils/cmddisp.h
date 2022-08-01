@@ -14,7 +14,7 @@ typedef struct {
     int has_arguments;
 } command_definition;
 
-command_definition *resolve_command(command_definition **commands, const char *keyword);
+command_definition *resolve_command(command_definition **commands, const char *keyword, int* dist);
 int generate_help(char *out, size_t len, command_definition **commands, const char *header, char prefix);
 
 #endif

@@ -361,7 +361,8 @@ command_definition *commands[] = {
 
 
 void dispatchcommand(char* msg, int author) {
-    static double lastts = 0, ts;
+    static double lastts = 0, lastfunny = 0, ts;
+    static float funny_score = 0;
     ts = timestamp(CLOCK_MONOTONIC);
     if (author != config.ownerid) {
         if (ts-lastts < 1.0) {
@@ -372,11 +373,23 @@ void dispatchcommand(char* msg, int author) {
     }
     char *part = strtok(msg, " ");
     command_definition *cmd = NULL;
+    int diff = INT_MAX;
     if (part != NULL) {
-        cmd = resolve_command(commands, part);
+        cmd = resolve_command(commands, part, &diff);
     }
-    if (cmd == NULL)
+    if (cmd == NULL) {
+        float dt = ts - lastfunny;
+        if (dt < 0.7) dt = 0.7;
+        funny_score /= dt;
+        lastfunny = ts;
+        funny_score += 2/diff;
+        if (funny_score > 5 && (rand()%5) == 0) {
+            sendchat("Take it easy...");
+            lastts = ts;
+            funny_score = 0;
+        }
         return;
+    }
     if (cmd->admin_only && (author != config.ownerid))
         return;
     if (cmd->has_arguments) {

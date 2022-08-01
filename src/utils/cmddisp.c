@@ -1,7 +1,8 @@
 #include "cmddisp.h"
+#include <levenshtein.h>
 
 command_definition *
-resolve_command(command_definition **commands, const char *keyword)
+resolve_command(command_definition **commands, const char *keyword, int *dist)
 {
     char buf[128];
     char *r;
@@ -10,8 +11,12 @@ resolve_command(command_definition **commands, const char *keyword)
         strcpy(buf, cmd->keywords);
         char *c = strtok_r(buf, " ", &r);
         do {
-            if (0 == strcmp(keyword, c))
+            size_t diff = levenshtein(keyword, c);
+            if (diff == 0)
                 return cmd;
+            if (dist && *dist > diff) {
+                *dist = diff;
+            }
         } while (c = strtok_r(NULL, " ", &r));
     }
     return NULL;
