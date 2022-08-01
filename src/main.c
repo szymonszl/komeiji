@@ -307,9 +307,7 @@ const char *parseequotes[] = {
 };
 
 void cmd_help_h(int author, const char* args) {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    sendchatf(helptext, parseequotes[ts.tv_nsec%5]); // wdym
+    sendchatf(helptext, parseequotes[rand()%5]);
 }
 command_definition cmd_help = {
     .keywords = "help ?",
