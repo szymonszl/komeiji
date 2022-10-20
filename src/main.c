@@ -376,11 +376,13 @@ void dispatchcommand(char* msg, int author) {
         cmd = resolve_command(commands, part, &diff);
     }
     if (cmd == NULL) {
+        float pfs = funny_score;
         float dt = ts - lastfunny;
         if (dt < 0.7) dt = 0.7;
         funny_score /= dt;
         lastfunny = ts;
         funny_score += 2/diff;
+        printf("[f] fs%f <- d%d, dt%f, pfs%f\n", funny_score, diff, dt, pfs);
         if (funny_score > 5 && (rand()%5) == 0) {
             sendchat("Take it easy...");
             lastts = ts;
