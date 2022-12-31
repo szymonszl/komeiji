@@ -237,6 +237,7 @@ void cmd_fortune_h(int author, const char* args) {
     memset(beginning, 0, sizeof(beginning));
     int n = rand() % BEGIN_LEN;
     int c = 0;
+    int caps = 0;
     for (int i = 0; beginnings[n][i]; i++) {
         if (beginnings[n][i] == '#') {
             strcat(beginning, user_name(author));
@@ -248,6 +249,7 @@ void cmd_fortune_h(int author, const char* args) {
             strcat(beginning, name);
             c += strlen(name);
             free(name);
+            caps = 1;
         } else if (beginnings[n][i] == '@') {
             char buf[6];
             time_t t = time(NULL);
@@ -271,6 +273,13 @@ void cmd_fortune_h(int author, const char* args) {
     }
     free(lbegin);
     memcpy(sentence, beginning, strlen(beginning)); // then copy the Cased version back over
+    if (caps) {
+        char *cur = sentence;
+        while ((cur = strchr(cur, ' '))) {
+            cur++;
+            *cur = toupper(*cur);
+        }
+    }
     sendchatf("%s", sentence);
 }
 command_definition cmd_fortune = {
