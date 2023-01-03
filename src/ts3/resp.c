@@ -80,12 +80,50 @@ unescape(struct ts3__arena *a, const char *s)
     }
 }
 
-ts3_resp *
-_ts3_read_resp(ts3_t *conn)
+ts3_record *
+parse_params(struct ts3__arena *a, char *params)
+{
+    char *srecord, *ssrecord;
+    ts3_record *recs = NULL;
+    for (srecord = strtok_r(params, "|", &ssrecord); srecord; srecord = strtok_r(NULL, "|", &ssrecord)) {
+        ts3_record *rec = mallocA(a, sizeof(ts3_record));
+        char *skv, *sskv;
+        ts3_kv *kvs = NULL;
+        for (skv = strtok_r(srecord, " ", &sskv); skv; skv = strtok_r(NULL, " ", &sskv)) {
+            ts3_kv *kv = mallocA(a, sizeof(ts3_kv));
+            char *eq = strchr(skv, '=');
+            if (eq) {
+                *eq = 0;
+                kv->k = strdupA(a, skv);
+                kv->v = unescape(a, eq+1);
+            } else {
+                kv->k = strdupA(a, skv);
+                kv->v = strdupA(a, "");
+            }
+            kv->next = kvs;
+            kvs = kv;
+        }
+        rec->params = kvs;
+        rec->next = recs;
+        recs = rec;
+    }
+    return recs;
+}
+
+static ts3_resp *
+newresp(void)
 {
     struct ts3__arena *a = calloc(1, sizeof(struct ts3__arena));
     ts3_resp *r = mallocA(a, sizeof(ts3_resp));
     r->__arena = a;
+    return r;
+}
+
+ts3_resp *
+_ts3_read_resp(ts3_t *conn)
+{
+    ts3_resp *r = newresp();
+    struct ts3__arena *a = r->__arena;
     for (;;) {
         char *line = _ts3_read_line(conn);
         if (strstr(line, "error") == line) {
@@ -97,29 +135,31 @@ _ts3_read_resp(ts3_t *conn)
             free(line);
             break;
         }
-        char *srecord, *ssrecord;
-        ts3_record *recs = NULL;
-        for (srecord = strtok_r(line, "|", &ssrecord); srecord; srecord = strtok_r(NULL, "|", &ssrecord)) {
-            ts3_record *rec = mallocA(a, sizeof(ts3_record));
-            char *skv, *sskv;
-            ts3_kv *kvs = NULL;
-            for (skv = strtok_r(srecord, " ", &sskv); skv; skv = strtok_r(NULL, " ", &sskv)) {
-                ts3_kv *kv = mallocA(a, sizeof(ts3_kv));
-                char *eq = strchr(skv, '=');
-                *eq = 0;
-                kv->k = strdupA(a, skv);
-                kv->v = unescape(a, eq+1);
-                kv->next = kvs;
-                kvs = kv;
-            }
-            rec->params = kvs;
-            rec->next = recs;
-            recs = rec;
+        if (strstr(line, "notify") == line) {
+            //
         }
+        r->records = parse_params(a, line);
         free(line);
-        r->records = recs;
     }
     conn->ts = ts3_ts();
+    return r;
+}
+
+ts3_resp *
+_ts3_read_push(ts3_t *conn)
+{
+    char *line = _ts3_read_line(conn);
+    ts3_resp *r = NULL;
+    if (strstr(line, "notify") == line) {
+        r = newresp();
+        char *space = strchr(line, ' ');
+        *space = 0;
+        r->desc = strdupA(r->__arena, line+6);
+        r->records = parse_params(r->__arena, space+1);
+    } else {
+        fprintf(stderr, "[T] unexpected line [%s]\n", line);
+    }
+    free(line);
     return r;
 }
 

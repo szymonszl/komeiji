@@ -11,7 +11,8 @@ _ts3_read_line(ts3_t *conn)
         char *line = buffer_read_line(conn->buf);
         if (line)
             return line;
-        tcp_recv(conn->conn, conn->buf, KMJ_TCP_NONE);
+        if (tcp_recv(conn->conn, conn->buf, KMJ_TCP_NONE) < 0)
+            return NULL;
     }
 }
 
@@ -46,6 +47,12 @@ ensure_open(ts3_t *conn)
     }
     ts3_freeresp(r);
     r = _ts3_query(conn, "use 1");
+    if (!ts3_issuccess(r)) {
+        ts3_freeresp(r);
+        goto fail;
+    }
+    ts3_freeresp(r);
+    r = _ts3_query(conn, "servernotifyregister event=server");
     if (!ts3_issuccess(r)) {
         ts3_freeresp(r);
         goto fail;
@@ -99,4 +106,24 @@ ts3_query(ts3_t *conn, const char *query)
     if (!ensure_open(conn))
         return NULL;
     return _ts3_query(conn, query);
+}
+
+ts3_resp *
+ts3_idlepoll(ts3_t *conn)
+{
+    if (!ensure_open(conn))
+        return NULL;
+    ts3_resp *r = NULL;
+    if (tcp_is_data_ready(conn->conn)) {
+        tcp_recv(conn->conn, conn->buf, KMJ_TCP_NO_BLOCK);
+        if (buffer_length(conn->buf)) {
+            r = _ts3_read_push(conn);
+        }
+    }
+    if (ts3_ts() > conn->ts+30) {
+        ts3_resp *r = ts3_query(conn, "version");
+        if (r) ts3_freeresp(r);
+        r = NULL;
+    }
+    return r;
 }

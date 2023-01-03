@@ -38,6 +38,7 @@ wsock_t *conn;
 buffer_t *ib, *ob;
 char helptext[1024];
 ts3_t *ts3;
+struct tsn_cache *tsn;
 struct user {
     struct user *next;
     int id;
@@ -345,7 +346,7 @@ void cmd_ts_h(int author, const char* args) {
         return;
     }
     if (!ts3_issuccess(cl)) {
-        sendchatf("[i]Error: request failed (%d)[/i]", cl->errid);
+        sendchatf("[i]Error: request failed - %s (%d)[/i]", cl->desc, cl->errid);
         return;
     }
     int total = 0;
@@ -528,6 +529,7 @@ int main(int argc, char** argv) {
 
     if (config.tshost && config.tsname && config.tspass) {
         ts3 = ts3_open(config.tshost, config.tsname, config.tspass);
+        tsn = calloc(1, sizeof(struct tsn_cache));
     } else {
         fprintf(stderr, "[!] Disabling TS3 due to missing configs\n");
     }
@@ -637,6 +639,25 @@ int main(int argc, char** argv) {
             fclose(f);
             printf("[+] Saved markov.\n");
             lastsave = ts;
+        }
+        if (ts3) {
+            ts3_resp *notif = ts3_idlepoll(ts3);
+            if (notif) {
+                if (0 == strcmp(notif->desc, "cliententerview")) {
+                    char *nick = ts3_getval(notif->records, "client_nickname");
+                    char *id = ts3_getval(notif->records, "clid");
+                    tsn_push(tsn, id, nick);
+                    sendchatf("[b]%s[/b] joined TeamSpeak", nick);
+                } else if (0 == strcmp(notif->desc, "clientleftview")) {
+                    char *id = ts3_getval(notif->records, "clid");
+                    char *nick = tsn_pull(tsn, id);
+                    if (nick) {
+                        sendchatf("[b]%s[/b] left TeamSpeak", nick);
+                        free(nick);
+                    }
+                }
+                ts3_freeresp(notif);
+            }
         }
         usleep(10000);
     }
