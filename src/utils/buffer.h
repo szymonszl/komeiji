@@ -24,6 +24,7 @@ void buffer_write_str(buffer_t*, const char* data);
 
 char* buffer_read(buffer_t*, int* length);
 char* buffer_read_str(buffer_t*);
+char* buffer_read_line(buffer_t*);
 
 int buffer_length(buffer_t*);
 void buffer_mask(buffer_t*, char* mask, int length);

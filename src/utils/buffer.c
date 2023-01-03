@@ -54,6 +54,38 @@ char* buffer_read_str(buffer_t* buffer) {
     return _buffer_read(buffer, NULL, 1);
 }
 
+char* buffer_read_line(buffer_t* buffer) {
+    char *nl = NULL;
+    buffer_t *lastbuf = NULL;
+    int len = 0;
+    for (buffer_t* cur = buffer; cur != NULL; cur = cur->next) {
+        nl = memchr(cur->data, '\n', cur->length);
+        if (nl) {
+            lastbuf = cur;
+            len += nl - cur->data;
+            break;
+        } else {
+            len += cur->length;
+        }
+    }
+    if (nl == NULL)
+        return NULL;
+
+    char *out = malloc(len+1);
+    int outw = 0;
+    for (buffer_t* cur = buffer; cur != NULL; cur = cur->next) {
+        if (cur != lastbuf) {
+            memcpy(out+outw, buffer->data, buffer->length);
+            outw += buffer->length;
+        } else {
+            memcpy(out+outw, buffer->data, nl - buffer->data);
+            out[len] = '\0';
+            buffer_truncate_to(buffer, len+1);
+            return out;
+        }
+    }
+}
+
 int buffer_length(buffer_t* buffer) {
     return buffer->length +
         ((buffer->next == NULL) ? 0 : buffer_length(buffer->next));
