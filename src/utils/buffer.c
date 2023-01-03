@@ -75,15 +75,22 @@ char* buffer_read_line(buffer_t* buffer) {
     int outw = 0;
     for (buffer_t* cur = buffer; cur != NULL; cur = cur->next) {
         if (cur != lastbuf) {
-            memcpy(out+outw, buffer->data, buffer->length);
+            memcpy(out+outw, cur->data, cur->length);
             outw += buffer->length;
         } else {
-            memcpy(out+outw, buffer->data, nl - buffer->data);
+            memcpy(out+outw, cur->data, nl - cur->data);
             out[len] = '\0';
             buffer_truncate_to(buffer, len+1);
-            return out;
+            break;
         }
     }
+    if (out[len-1] == '\r') {
+        out[len-1] = '\0';
+    }
+    if (out[0] == '\r') {
+        memmove(out, out+1, len);
+    }
+    return out;
 }
 
 int buffer_length(buffer_t* buffer) {
