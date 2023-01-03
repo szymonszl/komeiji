@@ -353,7 +353,11 @@ void cmd_ts_h(int author, const char* args) {
     for (ts3_record *user = cl->records; user; user = user->next) {
         const char *iscl = ts3_getval(user, "client_type");
         if (iscl[0] == '0') {
-            const char *name = ts3_getval(user, "client_nickname");
+            char *name = ts3_getval(user, "client_nickname");
+            char *meme;
+            while ((meme = strstr(name, ":ultreme:"))) {
+                memcpy(meme, ":extreme:", 10);
+            }
             char tmp[64];
             snprintf(tmp, 64, "%s[b]%s[/b]", total?", ":"", name);
             buffer_write_str(buf, tmp);
@@ -645,6 +649,10 @@ int main(int argc, char** argv) {
             if (notif) {
                 if (0 == strcmp(notif->desc, "cliententerview")) {
                     char *nick = ts3_getval(notif->records, "client_nickname");
+                    char *meme;
+                    while ((meme = strstr(nick, ":ultreme:"))) {
+                        memcpy(meme, ":extreme:", 10);
+                    }
                     char *id = ts3_getval(notif->records, "clid");
                     tsn_push(tsn, id, nick);
                     sendchatf("[b]%s[/b] joined TeamSpeak", nick);
