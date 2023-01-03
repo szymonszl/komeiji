@@ -9,6 +9,7 @@
 
 #include <libkoishi.h>
 #include "sock/wsock.h"
+#include "ts3/ts3.h"
 #include "utils/buffer.h"
 #include "utils/string.h"
 #include "utils/cmddisp.h"
@@ -26,6 +27,9 @@ static struct {
     char *markovpath;
     char *javpath;
     char prefix;
+    char *tshost;
+    char *tsname;
+    char *tspass;
 } config = {0};
 
 ksh_model_t *markov;
@@ -33,6 +37,7 @@ ksh_model_t *jav;
 wsock_t *conn;
 buffer_t *ib, *ob;
 char helptext[1024];
+ts3_t *ts3;
 struct user {
     struct user *next;
     int id;
@@ -327,6 +332,47 @@ command_definition cmd_help = {
     .has_arguments = 0
 };
 
+void cmd_ts_h(int author, const char* args) {
+    static buffer_t *buf = NULL;
+    if (!buf) buf = buffer_create();
+    if (!ts3) {
+        sendchat("[i]ts3 functionality disabled[/i]");
+        return;
+    }
+    ts3_resp *cl = ts3_query(ts3, "clientlist");
+    if (!cl) {
+        sendchat("[i]Error: couldn't connect to ts[/i]");
+        return;
+    }
+    if (!ts3_issuccess(cl)) {
+        sendchatf("[i]Error: request failed (%d)[/i]", cl->errid);
+        return;
+    }
+    int total = 0;
+    for (ts3_record *user = cl->records; user; user = user->next) {
+        const char *iscl = ts3_getval(user, "client_type");
+        if (iscl[0] == '0') {
+            const char *name = ts3_getval(user, "client_nickname");
+            char tmp[64];
+            snprintf(tmp, 64, "%s[b]%s[/b]", total?", ":"", name);
+            buffer_write_str(buf, tmp);
+            total++;
+        }
+    }
+    ts3_freeresp(cl);
+    char *out = buffer_read_str(buf);
+    sendchatf("%d users online: %s", total, out);
+    free(out);
+    buffer_truncate(buf);
+}
+command_definition cmd_ts = {
+    .keywords = "ts ts3 teamspeak",
+    .description = "show list of online users",
+    .handler = cmd_ts_h,
+    .admin_only = 0,
+    .has_arguments = 0
+};
+
 void cmd_save_h(int author, const char* args) {
     if (!args || !args[0]) {
         args = config.markovpath;
@@ -360,7 +406,7 @@ command_definition cmd_exit = {
 
 command_definition *commands[] = {
     &cmd_markov, &cmd_continue, &cmd_greentext, &cmd_fortune,
-    &cmd_jav, &cmd_help,
+    &cmd_jav, &cmd_help, &cmd_ts,
     &cmd_save, &cmd_exit, 0
 };
 
@@ -434,6 +480,9 @@ int main(int argc, char** argv) {
         else if (0 == strcmp(key, "markovpath")) config.markovpath = strdup(val);
         else if (0 == strcmp(key, "javpath")) config.javpath = strdup(val);
         else if (0 == strcmp(key, "prefix")) config.prefix = val[0];
+        else if (0 == strcmp(key, "tshost")) config.tshost = strdup(val);
+        else if (0 == strcmp(key, "tsname")) config.tsname = strdup(val);
+        else if (0 == strcmp(key, "tspass")) config.tspass = strdup(val);
         else fprintf(stderr, "Warning: unrecognized key \"%s\" in config\n", key);
     }
     fclose(f);
@@ -475,6 +524,12 @@ int main(int argc, char** argv) {
         fprintf(stderr, "[!] Starting with disabled JAV functionality");
         ksh_freemodel(jav);
         jav = NULL;
+    }
+
+    if (config.tshost && config.tsname && config.tspass) {
+        ts3 = ts3_open(config.tshost, config.tsname, config.tspass);
+    } else {
+        fprintf(stderr, "[!] Disabling TS3 due to missing configs\n");
     }
 
     printf("[+] Connecting to \"%s\"...\n", config.server);
@@ -589,6 +644,9 @@ int main(int argc, char** argv) {
     f = fopen(config.markovpath, "w");
     ksh_savemodel(markov, f);
     fclose(f);
+    if (ts3) {
+        ts3_close(ts3);
+    }
     printf("[+] Markov saved. Trying to close the socket...\n");
     if (conn) {
         wsock_free(conn);

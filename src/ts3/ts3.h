@@ -37,6 +37,7 @@ void ts3_close(ts3_t *conn);
 ts3_resp *ts3_query(ts3_t *conn, const char *query);
 int ts3_issuccess(ts3_resp *resp);
 void ts3_freeresp(ts3_resp *resp);
+const char *ts3_getval(ts3_record *rec, const char *key);
 
 ts3_resp *ts3_idlepoll(ts3_t *conn);
 

@@ -122,3 +122,13 @@ _ts3_read_resp(ts3_t *conn)
     conn->ts = ts3_ts();
     return r;
 }
+
+const char *
+ts3_getval(ts3_record *rec, const char *key)
+{
+    for (ts3_kv *kv = rec->params; kv; kv = kv->next) {
+        if (0 == strcmp(kv->k, key))
+            return kv->v;
+    }
+    return NULL;
+}
