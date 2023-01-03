@@ -152,6 +152,7 @@ timestamp(clockid_t clock)
     t += ((double)ts.tv_nsec) / 1000000000.0;
     return t;
 }
+double ts3_ts(void) { return timestamp(CLOCK_MONOTONIC); }
 
 /////////////////
 /// COMMANDS
