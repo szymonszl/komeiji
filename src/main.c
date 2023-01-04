@@ -630,7 +630,7 @@ int main(int argc, char** argv) {
             break;
         }
         double ts = timestamp(CLOCK_MONOTONIC);
-        if (ts - lastping > 10) {
+        if (ts - lastping > 30) {
             sprintf(buf, "0\t%d", config.uid);
             buffer_write_str(ob, buf);
             wsock_send(conn, ob);
