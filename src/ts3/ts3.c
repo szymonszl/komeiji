@@ -74,6 +74,7 @@ ts3_open(const char *host, const char *user, const char *pass)
     conn->pass = strdup(pass);
     conn->conn = NULL;
     conn->buf = buffer_create();
+    conn->stash = NULL;
     conn->ts = 0;
     ensure_open(conn);
     return conn;
@@ -114,6 +115,11 @@ ts3_idlepoll(ts3_t *conn)
     if (!ensure_open(conn))
         return NULL;
     ts3_resp *r = NULL;
+    if (conn->stash) {
+        r = conn->stash;
+        conn->stash = NULL;
+        return r;
+    }
     if (tcp_is_data_ready(conn->conn)) {
         tcp_recv(conn->conn, conn->buf, KMJ_TCP_NO_BLOCK);
         if (buffer_length(conn->buf)) {

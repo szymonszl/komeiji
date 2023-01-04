@@ -648,14 +648,17 @@ int main(int argc, char** argv) {
             ts3_resp *notif = ts3_idlepoll(ts3);
             if (notif) {
                 if (0 == strcmp(notif->desc, "cliententerview")) {
-                    char *nick = ts3_getval(notif->records, "client_nickname");
-                    char *meme;
-                    while ((meme = strstr(nick, ":ultreme:"))) {
-                        memcpy(meme, ":extreme:", 10);
+                    const char *iscl = ts3_getval(notif->records, "client_type");
+                    if (iscl[0] == '0') {
+                        char *nick = ts3_getval(notif->records, "client_nickname");
+                        char *meme;
+                        while ((meme = strstr(nick, ":ultreme:"))) {
+                            memcpy(meme, ":extreme:", 10);
+                        }
+                        char *id = ts3_getval(notif->records, "clid");
+                        tsn_push(tsn, id, nick);
+                        sendchatf("[b]%s[/b] joined TeamSpeak", nick);
                     }
-                    char *id = ts3_getval(notif->records, "clid");
-                    tsn_push(tsn, id, nick);
-                    sendchatf("[b]%s[/b] joined TeamSpeak", nick);
                 } else if (0 == strcmp(notif->desc, "clientleftview")) {
                     char *id = ts3_getval(notif->records, "clid");
                     char *nick = tsn_pull(tsn, id);

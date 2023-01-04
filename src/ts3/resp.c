@@ -4,6 +4,7 @@
 #include <assert.h>
 #include "ts3/ts3.h"
 #include "sock/tcp.h"
+#include "utils/string.h"
 
 #define ARENA_LEN 1024
 
@@ -126,7 +127,7 @@ _ts3_read_resp(ts3_t *conn)
     struct ts3__arena *a = r->__arena;
     for (;;) {
         char *line = _ts3_read_line(conn);
-        if (strstr(line, "error") == line) {
+        if (str_prefix(line, "error")) {
             char *part, *s;
             for (part = strtok_r(line, " ", &s); part; part = strtok_r(NULL, " ", &s)) {
                 if (sscanf(part, "id=%u", &r->errid) == 1)
@@ -135,8 +136,12 @@ _ts3_read_resp(ts3_t *conn)
             free(line);
             break;
         }
-        if (strstr(line, "notify") == line) {
-            //
+        if (str_prefix(line, "notify")) {
+            conn->stash = newresp();
+            char *space = strchr(line, ' ');
+            *space = 0;
+            conn->stash->desc = strdupA(conn->stash->__arena, line+6);
+            conn->stash->records = parse_params(conn->stash->__arena, space+1);
         }
         r->records = parse_params(a, line);
         free(line);
@@ -150,7 +155,7 @@ _ts3_read_push(ts3_t *conn)
 {
     char *line = _ts3_read_line(conn);
     ts3_resp *r = NULL;
-    if (strstr(line, "notify") == line) {
+    if (str_prefix(line, "notify")) {
         r = newresp();
         char *space = strchr(line, ' ');
         *space = 0;
@@ -160,10 +165,11 @@ _ts3_read_push(ts3_t *conn)
         fprintf(stderr, "[T] unexpected line [%s]\n", line);
     }
     free(line);
+    conn->ts = ts3_ts();
     return r;
 }
 
-const char *
+char *
 ts3_getval(ts3_record *rec, const char *key)
 {
     for (ts3_kv *kv = rec->params; kv; kv = kv->next) {

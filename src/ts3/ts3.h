@@ -11,6 +11,7 @@ typedef struct {
 
     tcp_t *conn;
     buffer_t *buf;
+    struct _ts3_resp *stash;
     double ts;
 } ts3_t;
 
@@ -25,7 +26,7 @@ typedef struct _ts3_record {
     struct _ts3_record *next;
 } ts3_record;
 
-typedef struct {
+typedef struct _ts3_resp {
     struct ts3__arena *__arena;
     int errid;
     char *desc; // msg if errid != 0, notify type if pushed
@@ -38,7 +39,7 @@ void ts3_close(ts3_t *conn);
 ts3_resp *ts3_query(ts3_t *conn, const char *query);
 int ts3_issuccess(ts3_resp *resp);
 void ts3_freeresp(ts3_resp *resp);
-const char *ts3_getval(ts3_record *rec, const char *key);
+char *ts3_getval(ts3_record *rec, const char *key);
 
 ts3_resp *ts3_idlepoll(ts3_t *conn);
 
