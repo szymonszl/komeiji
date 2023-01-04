@@ -411,7 +411,7 @@ command_definition cmd_exit = {
 
 command_definition *commands[] = {
     &cmd_markov, &cmd_continue, &cmd_greentext, &cmd_fortune,
-    &cmd_jav, &cmd_help, &cmd_ts,
+    &cmd_jav, &cmd_ts, &cmd_help,
     &cmd_save, &cmd_exit, 0
 };
 
