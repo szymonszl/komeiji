@@ -365,9 +365,13 @@ void cmd_ts_h(int author, const char* args) {
         }
     }
     ts3_freeresp(cl);
-    char *out = buffer_read_str(buf);
-    sendchatf("%d users online: %s", total, out);
-    free(out);
+    if (total) {
+        char *out = buffer_read_str(buf);
+        sendchatf("%d users online: %s", total, out);
+        free(out);
+    } else {
+        sendchat("No users online.");
+    }
     buffer_truncate(buf);
 }
 command_definition cmd_ts = {
