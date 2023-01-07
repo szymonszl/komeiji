@@ -367,7 +367,7 @@ void cmd_ts_h(int author, const char* args) {
     ts3_freeresp(cl);
     if (total) {
         char *out = buffer_read_str(buf);
-        sendchatf("%d users online: %s", total, out);
+        sendchatf("%d user%s online: %s", total, (total>1)?"s":"", out);
         free(out);
     } else {
         sendchat("No users online.");
