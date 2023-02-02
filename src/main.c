@@ -180,6 +180,8 @@ command_definition cmd_markov = {
 void cmd_continue_h(int author, const char* args) {
     char sentence[512];
     if (args) {
+        if (args[0] == '!')
+            return;
         int len = strlen(args);
         char *ultrameme = strstr(args, ":ultreme:");
         if (ultrameme) {
