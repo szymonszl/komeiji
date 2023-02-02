@@ -663,13 +663,13 @@ int main(int argc, char** argv) {
                         }
                         char *id = ts3_getval(notif->records, "clid");
                         tsn_push(tsn, id, nick);
-                        sendchatf("[b]%s[/b] joined TeamSpeak", nick);
+                        sendchatf("[b]%s[/b] [color=#aaa]joined TeamSpeak[/color]", nick);
                     }
                 } else if (0 == strcmp(notif->desc, "clientleftview")) {
                     char *id = ts3_getval(notif->records, "clid");
                     char *nick = tsn_pull(tsn, id);
                     if (nick) {
-                        sendchatf("[b]%s[/b] left TeamSpeak", nick);
+                        sendchatf("[b]%s[/b] [color=#aaa]left TeamSpeak[/color]", nick);
                         free(nick);
                     }
                 }
