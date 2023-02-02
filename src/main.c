@@ -194,7 +194,7 @@ void cmd_continue_h(int author, const char* args) {
             if (strlen(sentence) != len)
                 break;
         }
-        sendchat(sentence);
+        sendchatf("%s%s", strchr(args, '!')?"\u200b":"", sentence);
     } else {
         sendchat("[i]Please send a message to finish![/i]");
     }
