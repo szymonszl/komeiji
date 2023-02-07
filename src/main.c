@@ -590,6 +590,7 @@ int main(int argc, char** argv) {
                 }
             } else if (0 == strcmp(part, "2")) { // is a message
                 int author = 0;
+                char *contents = NULL;
                 for (int i = 1; (part = strtok(NULL, "\t")) != NULL; i++) {
                     // ^ for every tab-separated token, with the token index as i
                     if (i == 2) { // message author
@@ -599,14 +600,23 @@ int main(int argc, char** argv) {
                         printf("[ ] %s: \'%s\'\n", user_name(author), part);
                         str_lower(part);
                         if (author != config.uid) {
-                            if (part[0] == config.prefix) {
-                                dispatchcommand(part+1, author);
-                            } else {
-                                trainmarkov(part);
-                            }
+                            contents = strdup(part);
                         }
-                        break;
                     }
+                    if (i == 5) { // message flags
+                        if (part[4] == '1') { // is dm
+                            free(contents);
+                            contents = NULL;
+                        }
+                    }
+                }
+                if (contents) {
+                    if (contents[0] == config.prefix) {
+                        dispatchcommand(contents+1, author);
+                    } else {
+                        trainmarkov(contents);
+                    }
+                    free(contents);
                 }
             } else if (0 == strcmp(part, "7")) { // contexts
                 part = strtok(NULL, "\t"); // subtype
