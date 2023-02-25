@@ -141,6 +141,21 @@ void trainmarkov(const char* msg) {
                 }
                 ni++;
             }
+        } else if (str_prefix(&msg[i], "//i.fii.moe/")) {
+            if (!memcmp(buf+cur-5, "http:", 5))
+                cur -= 5;
+            if (!memcmp(buf+cur-6, "https:", 6))
+                cur -= 6;
+            i += strlen("//i.fii.moe/");
+            static const char *EEPROM_CHARSET = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789-_";
+            for (int j = 0; j < 32; j++) {
+                if (msg[i] == 0)
+                    break;
+                if (strchr(EEPROM_CHARSET, msg[i]) == NULL)
+                    break;
+                i++;
+            }
+            i--; // ???
         } else {
             buf[cur++] = msg[i];
         }
