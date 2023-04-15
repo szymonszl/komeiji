@@ -55,7 +55,7 @@ ts3_issuccess(ts3_resp *resp)
 char *
 unescape(struct ts3__arena *a, const char *s)
 {
-    char *out = mallocA(a, strlen(s));
+    char *out = mallocA(a, strlen(s)+1);
     // unescaped will be shorter than original
     char *cur = out;
     for (;;) {
