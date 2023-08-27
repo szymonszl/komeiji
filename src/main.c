@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <iconv.h>
 
 #include <libkoishi.h>
 #include "sock/wsock.h"
@@ -30,6 +31,8 @@ static struct {
     char *tshost;
     char *tsname;
     char *tspass;
+    char *mchost;
+    int mcport;
 } config = {0};
 
 ksh_model_t *markov;
@@ -399,6 +402,64 @@ command_definition cmd_ts = {
     .has_arguments = 0
 };
 
+void cmd_mc_h(int author, const char* args) {
+    // do not go here without this open https://wiki.vg/Server_List_Ping#1.6
+    int success = 0;
+    tcp_t *conn = tcp_open(config.mchost, config.mcport, 0);
+    if (!conn) goto mc_done;
+    if (tcp_send_raw(conn, "\xfe", 1) < 1) goto mc_done;
+    uint8_t tmp[3];
+    if (tcp_recv_raw(conn, (char*)tmp, 3, KMJ_TCP_NONE) < 3) goto mc_done;
+    int length = (tmp[1] << 8) | tmp[2];
+    if (length > 256) length = 256;
+    /* note: length is in fucking utf16 chars, which might take 2 or 4 bytes
+    gonna force read length*2 bytes, assuming no BMP, but also doing a non-
+    blocking read to hoover up emoji leftovers (or whatever flash puts there) */
+    char raw[1024];
+    int r = tcp_recv_raw(conn, raw, length*2, KMJ_TCP_WHOLE);
+    if (r < 0) goto mc_done;
+    r += tcp_recv_raw(conn, raw+r, 1024-r, KMJ_TCP_NO_BLOCK);
+    tcp_close(conn);
+    success = 1;
+    // HACK time
+    for (int i = 0; i < r; i++) {
+        if (raw[i] == '\xa7') raw[i] = '\x1e'; // much easier to parse !
+    }
+    // would be neat to have this as a buffer_iconv() function except not really
+    iconv_t ic = iconv_open("utf8", "utf16be"); // meme
+    char resp[1024]; // eh fuck it
+    char *cur = resp;
+    char *in = raw;
+    size_t inl = r;
+    size_t outl = 1024;
+    iconv(ic, &in, &inl, &cur, &outl);
+    iconv(ic, 0, 0, &cur, &outl);
+    *cur++ = 0; // null term
+    iconv_close(ic);
+    char *motd = strtok(resp, "\x1e");
+    char *online = strtok(NULL, "\x1e");
+    char *max = strtok(NULL, "\x1e");
+    if (motd && online && max) {
+        success = 2;
+    }
+mc_done:
+    if (conn) tcp_free(conn);
+    if (success == 2) {
+        sendchatf("[quote]%s[/quote] [[b]%s[/b]/[b]%s[/b]]", motd, online, max);
+    } else if (success) {
+        sendchat("[i]failed to parse[color=transparent]e[/color] server response[/i]");
+    } else {
+        sendchat("[i]failed to connect to the server[/i]");
+    }
+}
+command_definition cmd_mc = {
+    .keywords = "mc minecraft",
+    .description = "get player number",
+    .handler = cmd_mc_h,
+    .admin_only = 0,
+    .has_arguments = 0
+};
+
 void cmd_save_h(int author, const char* args) {
     if (!args || !args[0]) {
         args = config.markovpath;
@@ -432,7 +493,7 @@ command_definition cmd_exit = {
 
 command_definition *commands[] = {
     &cmd_markov, &cmd_continue, &cmd_greentext, &cmd_fortune,
-    &cmd_jav, &cmd_ts, &cmd_help,
+    &cmd_jav, &cmd_ts, &cmd_mc, &cmd_help,
     &cmd_save, &cmd_exit, 0
 };
 
@@ -509,6 +570,8 @@ int main(int argc, char** argv) {
         else if (0 == strcmp(key, "tshost")) config.tshost = strdup(val);
         else if (0 == strcmp(key, "tsname")) config.tsname = strdup(val);
         else if (0 == strcmp(key, "tspass")) config.tspass = strdup(val);
+        else if (0 == strcmp(key, "mchost")) config.mchost = strdup(val);
+        else if (0 == strcmp(key, "mcport")) config.mcport = strtol(val, NULL, 10);
         else fprintf(stderr, "Warning: unrecognized key \"%s\" in config\n", key);
     }
     fclose(f);
