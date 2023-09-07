@@ -21,4 +21,6 @@ char* random_bytes(char*, int length);
 void num_write(char*, uint64_t, int bytes);
 uint64_t num_read(const char*, int bytes);
 
+const char *circled(int num);
+
 #endif

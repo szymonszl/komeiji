@@ -143,3 +143,25 @@ uint64_t num_read(const char* str, int bytes) {
 
     return n;
 }
+
+static const char circleds[] = "⓪①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿";
+const char *circled(int num) {
+    static char tmp[5]; // 4 chars max utf8 + null
+    if (num < 0)
+        return "⧀";
+    const char *cur = circleds;
+    for (int i = 0; i < num; i++) {
+        do {
+            cur++;
+        } while ((*cur & 0xc0) == 0x80);
+    }
+    if (*cur) {
+        char *ctmp = tmp;
+        do {
+            *(ctmp++) = *(cur++);
+        } while ((*cur & 0xc0) == 0x80);
+        *ctmp = 0;
+        return tmp;
+    }
+    return "⧁";
+}
