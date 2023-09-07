@@ -6,11 +6,11 @@
 #include <unistd.h>
 #include <signal.h>
 #include <stdarg.h>
-#include <iconv.h>
 
 #include <libkoishi.h>
 #include "sock/wsock.h"
 #include "ts3/ts3.h"
+#include "utils/mc.h"
 #include "utils/buffer.h"
 #include "utils/string.h"
 #include "utils/cmddisp.h"
@@ -41,6 +41,7 @@ wsock_t *conn;
 buffer_t *ib, *ob;
 char helptext[1024];
 ts3_t *ts3;
+mc_t *mc;
 struct tsn_cache *tsn;
 struct user {
     struct user *next;
@@ -403,50 +404,10 @@ command_definition cmd_ts = {
 };
 
 void cmd_mc_h(int author, const char* args) {
-    // do not go here without this open https://wiki.vg/Server_List_Ping#1.6
-    int success = 0;
-    tcp_t *conn = tcp_open(config.mchost, config.mcport, 0);
-    if (!conn) goto mc_done;
-    if (tcp_send_raw(conn, "\xfe", 1) < 1) goto mc_done;
-    uint8_t tmp[3];
-    if (tcp_recv_raw(conn, (char*)tmp, 3, KMJ_TCP_NONE) < 3) goto mc_done;
-    int length = (tmp[1] << 8) | tmp[2];
-    if (length > 256) length = 256;
-    /* note: length is in fucking utf16 chars, which might take 2 or 4 bytes
-    gonna force read length*2 bytes, assuming no BMP, but also doing a non-
-    blocking read to hoover up emoji leftovers (or whatever flash puts there) */
-    char raw[1024];
-    int r = tcp_recv_raw(conn, raw, length*2, KMJ_TCP_WHOLE);
-    if (r < 0) goto mc_done;
-    r += tcp_recv_raw(conn, raw+r, 1024-r, KMJ_TCP_NO_BLOCK);
-    tcp_close(conn);
-    success = 1;
-    // HACK time
-    for (int i = 0; i < r; i++) {
-        if (raw[i] == '\xa7') raw[i] = '\x1e'; // much easier to parse !
-    }
-    // would be neat to have this as a buffer_iconv() function except not really
-    iconv_t ic = iconv_open("utf8", "utf16be"); // meme
-    char resp[1024]; // eh fuck it
-    char *cur = resp;
-    char *in = raw;
-    size_t inl = r;
-    size_t outl = 1024;
-    iconv(ic, &in, &inl, &cur, &outl);
-    iconv(ic, 0, 0, &cur, &outl);
-    *cur++ = 0; // null term
-    iconv_close(ic);
-    char *motd = strtok(resp, "\x1e");
-    char *online = strtok(NULL, "\x1e");
-    char *max = strtok(NULL, "\x1e");
-    if (motd && online && max) {
-        success = 2;
-    }
-mc_done:
-    if (conn) tcp_free(conn);
-    if (success == 2) {
-        sendchatf("[quote]%s[/quote] [[b]%s[/b]/[b]%s[/b]]", motd, online, max);
-    } else if (success) {
+    int r = mc_query(mc);
+    if (r >= 0) {
+        sendchatf("[quote]%s[/quote] [[b]%d[/b]/[b]%d[/b]]", mc->motd, mc->online, mc->max);
+    } else if (r == -2) {
         sendchat("[i]failed to parse[color=transparent]e[/color] server response[/i]");
     } else {
         sendchat("[i]failed to connect to the server[/i]");
@@ -622,6 +583,8 @@ int main(int argc, char** argv) {
         fprintf(stderr, "[!] Disabling TS3 due to missing configs\n");
     }
 
+    mc = mc_open(config.mchost, config.mcport);
+
     printf("[+] Connecting to \"%s\"...\n", config.server);
     conn = wsock_open(config.server);
     if (!conn) {
@@ -764,6 +727,7 @@ int main(int argc, char** argv) {
                 ts3_freeresp(notif);
             }
         }
+        mc_poll(mc);
         usleep(10000);
     }
     printf("[!] Loop exited!\n");
