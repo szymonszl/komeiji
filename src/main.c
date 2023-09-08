@@ -733,26 +733,28 @@ int main(int argc, char** argv) {
         }
         mc_poll(mc);
         if (ts - lastafkchange > 2) {
-            if (mc->online != lastmc || ts3->usercnt != lastts ||
-                    (lastmc+lastts && user_name(config.uid) && user_name(config.uid)[0] != '&')) {
-                lastmc = mc->online;
-                lastts = ts3->usercnt;
+            int newmc = mc->max ? mc->online : 0;
+            int newts = ts3 ? ts3->usercnt : 0;
+            if (newmc != lastmc || newts != lastts ||
+                    (newmc+newts && user_name(config.uid) && user_name(config.uid)[0] != '&')) {
+                lastmc = newmc;
+                lastts = newts;
                 char buf[64];
-                if (lastts || mc) {
+                if (newmc || newts) {
                     snprintf(buf, 64, "2\t%d\t/afk ", config.uid);
                     buffer_write_str(ob, buf);
-                    if (lastts) {
+                    if (newts) {
                         buffer_write_str(ob, "話");
-                        buffer_write_str(ob, circled(lastts));
+                        buffer_write_str(ob, circled(newts));
                     }
-                    if (lastts && lastmc)
+                    if (newts && newmc)
                         buffer_write_str(ob, " ");
-                    if (mc->max && lastmc) {
+                    if (newmc) {
                         buffer_write_str(ob, "⛏");
-                        buffer_write_str(ob, circled(lastmc));
+                        buffer_write_str(ob, circled(newmc));
                     }
                 } else {
-                    snprintf(buf, 64, "2\t%d\t/me", config.uid);
+                    snprintf(buf, 64, "2\t%d\t/me", config.uid); // hacky unset lol
                 }
                 wsock_send(conn, ob);
                 buffer_truncate(ob);
