@@ -76,6 +76,7 @@ ts3_open(const char *host, const char *user, const char *pass)
     conn->buf = buffer_create();
     conn->stash = NULL;
     conn->ts = 0;
+    conn->usercnt = 0;
     ensure_open(conn);
     return conn;
 }
@@ -127,8 +128,21 @@ ts3_idlepoll(ts3_t *conn)
         }
     }
     if (ts3_ts() > conn->ts+30) {
-        ts3_resp *r = ts3_query(conn, "version");
-        if (r) ts3_freeresp(r);
+        ts3_resp *r = ts3_query(conn, "clientlist");
+        if (r) {
+            if (ts3_issuccess(r)) {
+                int count = 0;
+                for (ts3_record *user = r->records; user; user = user->next) {
+                    const char *iscl = ts3_getval(user, "client_type");
+                    if (iscl[0] == '0') {
+                        count++;
+                    }
+                }
+                conn->usercnt = count;
+            }
+            ts3_freeresp(r);
+            conn->ts = ts3_ts();
+        }
         r = NULL;
     }
     return r;

@@ -8,6 +8,7 @@ typedef struct {
     char *host;
     char *user;
     char *pass;
+    int usercnt;
 
     tcp_t *conn;
     buffer_t *buf;

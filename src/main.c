@@ -385,6 +385,7 @@ void cmd_ts_h(int author, const char* args) {
             total++;
         }
     }
+    ts3->usercnt = total;
     ts3_freeresp(cl);
     if (total) {
         char *out = buffer_read_str(buf);
@@ -601,7 +602,8 @@ int main(int argc, char** argv) {
     wsock_send(conn, ob);
     buffer_truncate(ob);
     printf("[+] Login packet sent!\n");
-    double lastsave = 0, lastping = 0;
+    double lastsave = 0, lastping = 0, lastafkchange = 0;
+    int lastmc = 0, lastts = 0;
     while (running) {
         int status = wsock_recv(conn, ib, 0);
         if (status > 0) {
@@ -715,6 +717,7 @@ int main(int argc, char** argv) {
                         char *id = ts3_getval(notif->records, "clid");
                         tsn_push(tsn, id, nick);
                         sendchatf("[b]%s[/b] [color=#aaa]joined TeamSpeak[/color]", nick);
+                        ts3->usercnt++;
                     }
                 } else if (0 == strcmp(notif->desc, "clientleftview")) {
                     char *id = ts3_getval(notif->records, "clid");
@@ -722,12 +725,40 @@ int main(int argc, char** argv) {
                     if (nick) {
                         sendchatf("[b]%s[/b] [color=#aaa]left TeamSpeak[/color]", nick);
                         free(nick);
+                        ts3->usercnt--;
                     }
                 }
                 ts3_freeresp(notif);
             }
         }
         mc_poll(mc);
+        if (ts - lastafkchange > 2) {
+            if (mc->online != lastmc || ts3->usercnt != lastts ||
+                    (lastmc+lastts && user_name(config.uid) && user_name(config.uid)[0] != '&')) {
+                lastmc = mc->online;
+                lastts = ts3->usercnt;
+                char buf[64];
+                if (lastts || mc) {
+                    snprintf(buf, 64, "2\t%d\t/afk ", config.uid);
+                    buffer_write_str(ob, buf);
+                    if (lastts) {
+                        buffer_write_str(ob, "話");
+                        buffer_write_str(ob, circled(lastts));
+                    }
+                    if (lastts && lastmc)
+                        buffer_write_str(ob, " ");
+                    if (mc->max && lastmc) {
+                        buffer_write_str(ob, "⛏");
+                        buffer_write_str(ob, circled(lastmc));
+                    }
+                } else {
+                    snprintf(buf, 64, "2\t%d\t/me", config.uid);
+                }
+                wsock_send(conn, ob);
+                buffer_truncate(ob);
+                lastafkchange = ts;
+            }
+        }
         usleep(10000);
     }
     printf("[!] Loop exited!\n");
