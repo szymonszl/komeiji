@@ -755,6 +755,7 @@ int main(int argc, char** argv) {
                     }
                 } else {
                     snprintf(buf, 64, "2\t%d\t/me", config.uid); // hacky unset lol
+                    buffer_write_str(ob, buf);
                 }
                 wsock_send(conn, ob);
                 buffer_truncate(ob);
