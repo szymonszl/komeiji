@@ -468,8 +468,8 @@ command_definition *commands[] = {
 
 
 void dispatchcommand(char* msg, int author) {
-    static double lastts = 0, lastfunny = 0, ts;
-    static float funny_score = 0;
+    static double lastts = 0, lastfail = 0;
+    double ts;
     ts = timestamp(CLOCK_MONOTONIC);
     if (author != config.ownerid) {
         if (ts-lastts < 1.0) {
@@ -485,17 +485,14 @@ void dispatchcommand(char* msg, int author) {
         cmd = resolve_command(commands, part, &diff);
     }
     if (cmd == NULL) {
-        float pfs = funny_score;
-        float dt = ts - lastfunny;
-        if (dt < 0.7) dt = 0.7;
-        funny_score /= dt;
-        lastfunny = ts;
-        funny_score += 2/diff;
-        printf("[f] fs%f <- d%d, dt%f, pfs%f\n", funny_score, diff, dt, pfs);
-        if (funny_score > 5 && (rand()%5) == 0) {
-            sendchat("Take it easy...");
+        float chance = 0.1/(diff+1)/MIN((ts-lastfail), 0.5);
+        float rng = (float)rand()/(float)RAND_MAX;
+        if (rng < chance && ts-lastfail < 3) {
+            const char *snark[] = { "Almost...", "you can do it !", "Take it easy ...", "You talk to yourself an awful lot."};
+            sendchat(snark[rand()%4]);
             lastts = ts;
-            funny_score = 0;
+        } else {
+            lastfail = ts;
         }
         return;
     }
