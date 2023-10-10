@@ -112,13 +112,9 @@ void sendchatf(const char* msg, ...) {
 
     va_end(args);
 }
-void trainmarkov(const char* msg) {
-    char buf[20008]; // max flashii message length is 5000 characters, assuming worst case four bytes per char (utf-8) + eight more bytes because trust issues
+const char *preprocess(const char *msg) {
+    static char buf[20008]; // max flashii message length is 5000 characters, assuming worst case four bytes per char (utf-8) + eight more bytes because trust issues
     int cur = 0;
-    if (strstr(msg, "[code]")) return;
-    if (strstr(msg, "[sjis]")) return;
-    if (str_prefix(msg, "!markov")) return;
-    if (str_prefix(msg, "!np")) return;
     for (int i = 0; msg[i] != 0; i++) {
         if (str_prefix(&msg[i], " <br/> ")) {
             buf[cur++] = '\n';
@@ -165,7 +161,14 @@ void trainmarkov(const char* msg) {
         }
     }
     buf[cur] = 0;
-    ksh_trainmarkov(markov, buf);
+    return buf;
+}
+void trainmarkov(const char* msg) {
+    if (strstr(msg, "[code]")) return;
+    if (strstr(msg, "[sjis]")) return;
+    if (str_prefix(msg, "!markov")) return;
+    if (str_prefix(msg, "!np")) return;
+    ksh_trainmarkov(markov, preprocess(msg));
 }
 
 double
@@ -201,19 +204,20 @@ void cmd_continue_h(int author, const char* args) {
     if (args) {
         if (args[0] == '!')
             return;
-        int len = strlen(args);
-        char *ultrameme = strstr(args, ":ultreme:");
+        const char *clean = preprocess(args);
+        int len = strlen(clean);
+        char *ultrameme = strstr(clean, ":ultreme:");
         if (ultrameme) {
             sendchat(":mewow:");
             return;
         }
         for (int i = 0; i < 5; i++) { // up to 5 rolls
-            ksh_continuestring(markov, sentence, 512, args);
+            ksh_continuestring(markov, sentence, 512, clean);
             // printf("Roll %i: '%s'[%d] -> '%s'[%d]\n", i, args, len, sentence, strlen(sentence));
             if (strlen(sentence) != len)
                 break;
         }
-        sendchatf("%s%s", strchr(args, '!')?"\u200b":"", sentence);
+        sendchatf("%s%s", strchr(clean, '!')?"\u200b":"", sentence);
     } else {
         sendchat("[i]Please send a message to finish![/i]");
     }
