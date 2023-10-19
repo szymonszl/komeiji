@@ -202,7 +202,7 @@ command_definition cmd_markov = {
 void cmd_continue_h(int author, const char* args) {
     char sentence[512];
     if (args) {
-        if (args[0] == '!')
+        if (args[0] == '!' || args[0] == '^')
             return;
         const char *clean = preprocess(args);
         int len = strlen(clean);
